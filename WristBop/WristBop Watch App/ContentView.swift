@@ -12,8 +12,11 @@ struct ContentView: View {
     @StateObject private var viewModel = GameViewModel()
 
     var body: some View {
-        if viewModel.isGameOver {
-            // Game over screen (check this FIRST!)
+        if viewModel.showingCountdown {
+            // Countdown screen (check this FIRST!)
+            countdownView
+        } else if viewModel.isGameOver {
+            // Game over screen
             gameOverView
         } else if !viewModel.isPlaying {
             // Main menu
@@ -31,27 +34,30 @@ struct ContentView: View {
 
     private var mainMenuView: some View {
         VStack(spacing: 16) {
-            // Tappable title with jiggle animation
+            // Title with jiggle animation (no longer tappable)
             Text("WristBop")
                 .font(.title2)
                 .bold()
                 .modifier(JiggleEffect())
-                .onTapGesture {
-                    viewModel.startGame()
-                }
 
-            // Scores
-            VStack(spacing: 4) {
-                if viewModel.lastScore > 0 {
-                    Text("Last: \(viewModel.lastScore)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                Text("High: \(viewModel.highScore)")
+            // High score with crown icon
+            HStack(spacing: 4) {
+                Image(systemName: "crown.fill")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                Text("\(viewModel.highScore)")
+                    .font(.caption)
             }
+            .foregroundColor(.secondary)
+
+            // Play button
+            Button(action: {
+                viewModel.startGame()
+            }) {
+                Image(systemName: "play.circle.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(.green)
+            }
+            .buttonStyle(.plain)
         }
         .padding()
     }
@@ -97,6 +103,52 @@ struct ContentView: View {
                             isJiggling = false
                         }
                     }
+                }
+            }
+        }
+    }
+
+    // MARK: - Countdown
+
+    private var countdownView: some View {
+        ZStack {
+            // Full-screen circular timer at edge
+            GeometryReader { geometry in
+                ZStack {
+                    // Background circle at edge
+                    Circle()
+                        .stroke(Color.gray.opacity(0.2), lineWidth: 6)
+                        .frame(width: geometry.size.width - 10, height: geometry.size.height - 10)
+                        .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+
+                    // Animated countdown ring at edge
+                    Circle()
+                        .trim(from: 0, to: viewModel.countdownTimeRemaining / 3.0)
+                        .stroke(
+                            Color.blue,
+                            style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                        )
+                        .frame(width: geometry.size.width - 10, height: geometry.size.height - 10)
+                        .rotationEffect(.degrees(-90))
+                        .animation(.linear(duration: 0.05), value: viewModel.countdownTimeRemaining)
+                        .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                }
+            }
+            .ignoresSafeArea()
+
+            // Center text
+            VStack {
+                if viewModel.showingGo {
+                    Text("GO!")
+                        .font(.largeTitle)
+                        .bold()
+                        .foregroundColor(.green)
+                        .transition(.scale.combined(with: .opacity))
+                } else {
+                    Text("Ready")
+                        .font(.largeTitle)
+                        .bold()
+                        .transition(.scale.combined(with: .opacity))
                 }
             }
         }

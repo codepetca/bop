@@ -23,6 +23,9 @@ class GameViewModel: ObservableObject {
     @Published var didSpeedUp: Bool = false
     @Published var showingSpeedUpMessage: Bool = false
     @Published var canTapToSkipGameOver: Bool = false
+    @Published var showingCountdown: Bool = false
+    @Published var countdownTimeRemaining: TimeInterval = 0
+    @Published var showingGo: Bool = false
 
     // Game engine
     private var engine: GameEngine
@@ -30,6 +33,8 @@ class GameViewModel: ObservableObject {
     // Timer management
     nonisolated(unsafe) private var timer: Timer?
     private var commandStartTime: Date?
+    nonisolated(unsafe) private var countdownTimer: Timer?
+    private var countdownStartTime: Date?
 
     init() {
         self.engine = GameEngine(
@@ -43,6 +48,11 @@ class GameViewModel: ObservableObject {
     // MARK: - Game Control
 
     func startGame() {
+        // Start countdown instead of game immediately
+        startCountdown()
+    }
+
+    private func actuallyStartGame() {
         engine.startGame()
         updateFromEngineState()
         startTimer()
@@ -64,7 +74,11 @@ class GameViewModel: ObservableObject {
     // MARK: - Gesture Handling
 
     func handleGesture(_ gesture: GestureType) {
-        guard isPlaying, !isGameOver, !showingSpeedUpMessage else { return }
+        // Defensive checks to prevent any state changes during invalid states
+        guard isPlaying else { return }
+        guard !isGameOver else { return }
+        guard !showingSpeedUpMessage else { return }
+        guard !showingCountdown else { return }
         guard let currentCommand = currentCommand else { return }
 
         // Only process if it's the correct gesture
@@ -163,6 +177,60 @@ class GameViewModel: ObservableObject {
         canTapToSkipGameOver = false
     }
 
+    // MARK: - Countdown Management
+
+    private func startCountdown() {
+        stopCountdownTimer()
+        showingCountdown = true
+        showingGo = false
+        countdownTimeRemaining = 3.0
+        countdownStartTime = Date()
+
+        // Start a timer that fires frequently to update countdown UI
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                self.updateCountdownTimer()
+            }
+        }
+    }
+
+    private func stopCountdownTimer() {
+        countdownTimer?.invalidate()
+        countdownTimer = nil
+        countdownStartTime = nil
+    }
+
+    private func updateCountdownTimer() {
+        guard let startTime = countdownStartTime else { return }
+
+        let elapsed = Date().timeIntervalSince(startTime)
+        let remaining = 3.0 - elapsed
+
+        if remaining <= 0 {
+            // Countdown complete - show "GO!" then start game
+            handleCountdownComplete()
+        } else {
+            countdownTimeRemaining = remaining
+        }
+    }
+
+    private func handleCountdownComplete() {
+        stopCountdownTimer()
+        showingGo = true
+
+        // Show "GO!" for 0.5 seconds, then start game
+        Task {
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            await MainActor.run {
+                self.showingCountdown = false
+                self.showingGo = false
+                self.actuallyStartGame()
+            }
+        }
+    }
+
     private func showSpeedUpMessage() {
         stopTimer()
         showingSpeedUpMessage = true
@@ -194,7 +262,8 @@ class GameViewModel: ObservableObject {
     }
 
     deinit {
-        // Invalidate timer directly since deinit can't be MainActor
+        // Invalidate timers directly since deinit can't be MainActor
         timer?.invalidate()
+        countdownTimer?.invalidate()
     }
 }
