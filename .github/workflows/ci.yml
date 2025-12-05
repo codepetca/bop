@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  tests:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run swift tests (skip if no package yet)
+        if: hashFiles('Package.swift') != ''
+        run: |
+          swift test --parallel
+
+      - name: Skip swift tests (no Package.swift yet)
+        if: hashFiles('Package.swift') == ''
+        run: echo "No Package.swift found; skipping swift tests until the project is scaffolded."
