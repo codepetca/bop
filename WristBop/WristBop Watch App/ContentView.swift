@@ -30,25 +30,76 @@ struct ContentView: View {
     // MARK: - Main Menu
 
     private var mainMenuView: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
+            // Tappable title with jiggle animation
             Text("WristBop")
                 .font(.title2)
                 .bold()
+                .modifier(JiggleEffect())
+                .onTapGesture {
+                    viewModel.startGame()
+                }
 
-            Text("High Score: \(viewModel.highScore)")
-                .font(.caption)
-                .foregroundColor(.secondary)
+            // Scores
+            VStack(spacing: 4) {
+                if viewModel.lastScore > 0 {
+                    Text("Last: \(viewModel.lastScore)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
 
-            Button(action: {
-                viewModel.startGame()
-            }) {
-                Text("Start Game")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
+                Text("High: \(viewModel.highScore)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
-            .buttonStyle(.borderedProminent)
         }
         .padding()
+    }
+
+    // MARK: - Jiggle Animation
+
+    struct JiggleEffect: ViewModifier {
+        @State private var isJiggling = false
+
+        func body(content: Content) -> some View {
+            content
+                .rotationEffect(.degrees(isJiggling ? 5 : 0))
+                .onAppear {
+                    startJiggleTimer()
+                }
+        }
+
+        private func startJiggleTimer() {
+            // Jiggle immediately on appear
+            performJiggle()
+
+            // Then repeat every 5 seconds
+            Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
+                performJiggle()
+            }
+        }
+
+        private func performJiggle() {
+            // Quick back-and-forth jiggle animation
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isJiggling = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(.easeInOut(duration: 0.1)) {
+                    isJiggling = false
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    withAnimation(.easeInOut(duration: 0.1)) {
+                        isJiggling = true
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        withAnimation(.easeInOut(duration: 0.1)) {
+                            isJiggling = false
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Game Play

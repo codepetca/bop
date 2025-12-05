@@ -15,6 +15,7 @@ class GameViewModel: ObservableObject {
     @Published var currentCommand: GestureType?
     @Published var score: Int = 0
     @Published var highScore: Int = 0
+    @Published var lastScore: Int = 0
     @Published var timeRemaining: TimeInterval = 0
     @Published var maxTimeForCurrentCommand: TimeInterval = 2.4
     @Published var isPlaying: Bool = false
@@ -36,6 +37,7 @@ class GameViewModel: ObservableObject {
             highScoreStore: UserDefaultsHighScoreStore()
         )
         self.highScore = engine.state.highScore
+        self.lastScore = UserDefaults.standard.integer(forKey: "WristBopLastScore")
     }
 
     // MARK: - Game Control
@@ -128,6 +130,11 @@ class GameViewModel: ObservableObject {
 
     private func handleTimeout() {
         stopTimer()
+
+        // Save last score before ending game
+        lastScore = engine.state.score
+        UserDefaults.standard.set(lastScore, forKey: "WristBopLastScore")
+
         engine.handleTimeout()
         updateFromEngineState()
         canTapToSkipGameOver = false
