@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		6BC5B7C12EE31A1800EAF76F /* WristBop Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 6BC5B7C02EE31A1800EAF76F /* WristBop Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		6BC5B8402EE33F6F00EAF76F /* WristBopCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6BC5B83F2EE33F6F00EAF76F /* WristBopCore */; };
+		6BC5B8502F0A0D0000EAF76F /* WristBopCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6BC5B8512F0A0D0000EAF76F /* WristBopCore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -110,6 +111,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6BC5B8502F0A0D0000EAF76F /* WristBopCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -200,6 +202,7 @@
 			);
 			name = WristBop;
 			packageProductDependencies = (
+				6BC5B8512F0A0D0000EAF76F /* WristBopCore */,
 			);
 			productName = WristBop;
 			productReference = 6BC5B79D2EE31A1600EAF76F /* WristBop.app */;
@@ -1015,6 +1018,10 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		6BC5B83F2EE33F6F00EAF76F /* WristBopCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WristBopCore;
+		};
+		6BC5B8512F0A0D0000EAF76F /* WristBopCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = WristBopCore;
 		};
