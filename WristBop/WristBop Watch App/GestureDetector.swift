@@ -7,6 +7,14 @@ protocol GestureDetectorDelegate: AnyObject {
     func gestureDetector(_ detector: GestureDetector, didDetect gesture: GestureType)
 }
 
+protocol GestureDetecting: AnyObject {
+    var delegate: GestureDetectorDelegate? { get set }
+    func start()
+    func stop()
+    func setActiveCommand(_ command: GestureType?)
+    func injectSample(_ sample: MotionSample)
+}
+
 protocol MotionManagerProtocol: AnyObject {
     var isDeviceMotionAvailable: Bool { get }
     var deviceMotionUpdateInterval: TimeInterval { get set }
@@ -29,7 +37,7 @@ struct MotionSample {
     let timestamp: TimeInterval
 }
 
-final class GestureDetector: NSObject {
+final class GestureDetector: NSObject, GestureDetecting {
     weak var delegate: GestureDetectorDelegate?
 
     private let motionManager: MotionManagerProtocol
