@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import WristBopCore
 
@@ -109,8 +110,14 @@ struct GameEngineTests {
 
         engine.startGame()
 
-        // Complete many gestures to hit the floor
-        for _ in 0..<30 {
+        let rampsToFloor = Int(ceil(
+            (GameConstants.initialTimePerCommand - GameConstants.minimumTimePerCommand)
+            / GameConstants.timeDecrementPerRamp
+        ))
+        let gesturesToFloor = rampsToFloor * GameConstants.successesPerDifficultyRamp
+
+        // Complete enough gestures to hit the floor (plus a buffer)
+        for _ in 0..<(gesturesToFloor + GameConstants.successesPerDifficultyRamp) {
             let command = engine.state.currentCommand!
             engine.handleGestureMatch(command)
         }
@@ -128,8 +135,14 @@ struct GameEngineTests {
 
         engine.startGame()
 
+        let rampsToFloor = Int(ceil(
+            (GameConstants.initialTimePerCommand - GameConstants.minimumTimePerCommand)
+            / GameConstants.timeDecrementPerRamp
+        ))
+        let gesturesToFloor = rampsToFloor * GameConstants.successesPerDifficultyRamp
+
         // Complete enough gestures to hit the floor
-        for _ in 0..<30 {
+        for _ in 0..<gesturesToFloor {
             let command = engine.state.currentCommand!
             engine.handleGestureMatch(command)
         }
