@@ -13,6 +13,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Swift 6.0
+        run: |
+          brew update
+          brew install swift@6
+          SWIFT_PREFIX="$(brew --prefix swift@6)"
+          echo "$SWIFT_PREFIX/bin" >> "$GITHUB_PATH"
+
       - name: Run swift tests (skip if no package yet)
         if: hashFiles('Package.swift') != ''
         run: |
