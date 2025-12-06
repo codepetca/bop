@@ -29,6 +29,8 @@ class GameViewModel: ObservableObject {
 
     // Game engine
     private var engine: GameEngine
+    private let haptics: HapticsManager
+    private let sounds: SoundManager
 
     // Timer management
     nonisolated(unsafe) private var timer: Timer?
@@ -36,11 +38,16 @@ class GameViewModel: ObservableObject {
     nonisolated(unsafe) private var countdownTimer: Timer?
     private var countdownStartTime: Date?
 
-    init() {
+    init(
+        haptics: HapticsManager = HapticsManager(),
+        sounds: SoundManager = SoundManager()
+    ) {
         self.engine = GameEngine(
             commandRandomizer: SystemCommandRandomizer(),
             highScoreStore: UserDefaultsHighScoreStore()
         )
+        self.haptics = haptics
+        self.sounds = sounds
         self.highScore = engine.state.highScore
         self.lastScore = UserDefaults.standard.integer(forKey: "WristBopLastScore")
     }
@@ -93,9 +100,13 @@ class GameViewModel: ObservableObject {
         if engine.state.score > previousScore {
             // Check if we just triggered a speed-up
             if engine.state.didTriggerSpeedUpCue {
+                haptics.play(.speedUp)
+                sounds.play(.speedUp)
                 // Pause game and show speed-up message
                 showSpeedUpMessage()
             } else {
+                haptics.play(.success)
+                sounds.play(.success)
                 // Restart timer with new time per command
                 startTimer()
             }
@@ -110,6 +121,8 @@ class GameViewModel: ObservableObject {
 
         // Capture the current time window for this command
         maxTimeForCurrentCommand = engine.state.timePerCommand
+        haptics.play(.tick)
+        sounds.play(.tick)
 
         // Start a timer that fires frequently to update UI
         // Use RunLoop.main to ensure timer runs on main thread
@@ -152,6 +165,8 @@ class GameViewModel: ObservableObject {
         engine.handleTimeout()
         updateFromEngineState()
         canTapToSkipGameOver = false
+        haptics.play(.failure)
+        sounds.play(.failure)
 
         // After 3 seconds, allow tap to skip
         Task {
