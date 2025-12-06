@@ -40,10 +40,10 @@ class GameViewModel: ObservableObject {
     private var countdownStartTime: Date?
 
     init(
-        haptics: HapticsManager = HapticsManager(),
-        sounds: SoundManager = SoundManager(),
-        detector: GestureDetecting = GestureDetector(),
-        timerScheduler: TimerScheduling = SystemTimerScheduler(),
+        haptics: HapticsManager,
+        sounds: SoundManager,
+        detector: GestureDetecting,
+        timerScheduler: TimerScheduling,
         skipCountdown: Bool = false
     ) {
         self.engine = GameEngine(
@@ -57,6 +57,16 @@ class GameViewModel: ObservableObject {
         self.highScore = engine.state.highScore
         self.lastScore = UserDefaults.standard.integer(forKey: "WristBopLastScore")
         self.shouldSkipCountdown = skipCountdown
+    }
+
+    convenience init(skipCountdown: Bool = false) {
+        self.init(
+            haptics: HapticsManager(),
+            sounds: SoundManager(),
+            detector: GestureDetector(),
+            timerScheduler: SystemTimerScheduler(),
+            skipCountdown: skipCountdown
+        )
     }
 
     private let shouldSkipCountdown: Bool
@@ -136,7 +146,6 @@ class GameViewModel: ObservableObject {
 
     private func startTimer() {
         stopTimer()
-        commandStartTime = Date()
 
         // Capture the current time window for this command
         maxTimeForCurrentCommand = engine.state.timePerCommand
@@ -292,9 +301,9 @@ class GameViewModel: ObservableObject {
         }
     }
 
-    deinit {
-        // Invalidate timers directly since deinit can't be MainActor
-        timer?.invalidate()
+    @MainActor deinit {
+        // Clean up timers on teardown
+        timerScheduler.cancel()
         countdownTimer?.invalidate()
     }
 }
