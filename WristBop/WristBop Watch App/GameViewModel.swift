@@ -87,7 +87,6 @@ class GameViewModel: ObservableObject {
         )
     }
 
-
     private let shouldSkipCountdown: Bool
 
     // MARK: - Game Control
