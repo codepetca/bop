@@ -13,6 +13,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check Swift on runner
+        run: swift --version
+
       - name: Run swift tests (skip if no package yet)
         if: hashFiles('Package.swift') != ''
         run: |
