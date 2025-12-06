@@ -13,6 +13,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Replaced missing swift-server/setup-swift action with a self-contained manual install
+      - name: Install Swift 6.0 manually
+        run: |
+          set -euo pipefail
+          # Update SWIFT_VERSION to the exact release name found on https://swift.org/download/
+          SWIFT_VERSION="6.0-RELEASE"
+          # Construct a likely tarball URL; maintainers should confirm and adjust if needed
+          SWIFT_TARBALL_URL="https://download.swift.org/swift-${SWIFT_VERSION}/swift-${SWIFT_VERSION}-osx.tar.gz"
+
+          echo "Downloading: ${SWIFT_TARBALL_URL}"
+          curl -fsSL "$SWIFT_TARBALL_URL" -o /tmp/swift.tar.gz
+          sudo tar -xzf /tmp/swift.tar.gz -C /usr/local
+
+          # Attempt to find the extracted toolchain bin directory and add it to PATH
+          EXTRACTED_DIR=$(tar -tzf /tmp/swift.tar.gz | head -1 | cut -f1 -d"/")
+          if [ -d "/usr/local/${EXTRACTED_DIR}/usr/bin" ]; then
+            echo "/usr/local/${EXTRACTED_DIR}/usr/bin" >> $GITHUB_PATH
+          else
+            # Fallback: add common locations if the layout differs
+            echo "/usr/local/bin" >> $GITHUB_PATH || true
+          fi
+      - name: Check swift
+        run: swift --version
+
       - name: Run swift tests (skip if no package yet)
         if: hashFiles('Package.swift') != ''
         run: |
