@@ -1,7 +1,9 @@
+import Foundation
 import Testing
 @testable import WristBop_Watch_App
 import WristBopCore
 
+@MainActor
 @Suite("GameViewModel")
 struct GameViewModelTests {
 
@@ -55,32 +57,7 @@ struct GameViewModelTests {
         #expect(detector.lastActiveCommand != nil)
     }
 
-    @Test("Timeout plays failure and clears active command")
-    func testTimeout() {
-        let detector = FakeDetector()
-        let timers = FakeTimerScheduler()
-        let haptics = FakeHaptics()
-        let sounds = FakeSounds()
-        let viewModel = GameViewModel(
-            haptics: haptics,
-            sounds: sounds,
-            detector: detector,
-            timerScheduler: timers,
-            skipCountdown: true
-        )
-
-        viewModel.startGame()
-        viewModel.handleTimeout()
-
-        #expect(haptics.playedEvents.contains(.failure))
-        #expect(sounds.playedEvents.contains(.failure))
-        #expect(detector.lastActiveCommand == nil)
-        #expect(timers.cancelledCount > 0)
-        #expect(viewModel.isGameOver == true)
-        #expect(viewModel.isPlaying == false)
-    }
-
-    @Test("Timeout from scheduler ends game and clears command")
+    @Test("Timeout ends game and clears command")
     func testTimeoutTriggeredByScheduler() {
         let detector = FakeDetector()
         let timers = FakeTimerScheduler()
@@ -229,21 +206,21 @@ private final class FakeTimerScheduler: TimerScheduling {
     }
 }
 
-private final class FakeHaptics: HapticsManager {
+private final class FakeHaptics: HapticsPlaying {
     var playedEvents: [GameFeedbackEvent] = []
-    override func play(_ event: GameFeedbackEvent) {
+    func play(_ event: GameFeedbackEvent) {
         playedEvents.append(event)
     }
 }
 
-private final class FakeSounds: SoundManager {
+private final class FakeSounds: SoundPlaying {
     var playedEvents: [GameFeedbackEvent] = []
-    override func play(_ event: GameFeedbackEvent) {
+    func play(_ event: GameFeedbackEvent) {
         playedEvents.append(event)
     }
 }
 
-private final class SequenceCommandRandomizer: CommandRandomizer {
+private final class SequenceCommandRandomizer: CommandRandomizer, @unchecked Sendable {
     private let sequence: [GestureType]
     private var currentIndex: Int = 0
 

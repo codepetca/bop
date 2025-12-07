@@ -1,6 +1,11 @@
 import AVFoundation
 
-final class SoundManager {
+/// Abstraction for playing sound feedback (protocol to allow testing doubles)
+protocol SoundPlaying {
+    func play(_ event: GameFeedbackEvent)
+}
+
+final class SoundManager: SoundPlaying {
     private var players: [GameFeedbackEvent: AVAudioPlayer] = [:]
     private let bundle: Bundle
 

@@ -29,8 +29,8 @@ class GameViewModel: ObservableObject {
 
     // Game engine
     private var engine: GameEngine
-    private let haptics: HapticsManager
-    private let sounds: SoundManager
+    private let haptics: any HapticsPlaying
+    private let sounds: any SoundPlaying
     private let detector: GestureDetecting
     private let timerScheduler: TimerScheduling
     private let tickInterval: TimeInterval = 0.05
@@ -41,8 +41,8 @@ class GameViewModel: ObservableObject {
     private var countdownStartTime: Date?
 
     init(
-        haptics: HapticsManager,
-        sounds: SoundManager,
+        haptics: any HapticsPlaying,
+        sounds: any SoundPlaying,
         detector: GestureDetecting,
         timerScheduler: TimerScheduling,
         commandRandomizer: CommandRandomizer = SystemCommandRandomizer(),
@@ -170,14 +170,10 @@ class GameViewModel: ObservableObject {
             duration: engine.state.timePerCommand,
             tickInterval: tickInterval,
             onTick: { [weak self] remaining in
-                Task { @MainActor in
-                    self?.timeRemaining = remaining
-                }
+                self?.timeRemaining = remaining
             },
             onTimeout: { [weak self] in
-                Task { @MainActor in
-                    self?.handleTimeout()
-                }
+                self?.handleTimeout()
             }
         )
     }
