@@ -17,7 +17,7 @@ class GameViewModel: ObservableObject {
     @Published var highScore: Int = 0
     @Published var lastScore: Int = 0
     @Published var timeRemaining: TimeInterval = 0
-    @Published var maxTimeForCurrentCommand: TimeInterval = 2.4
+    @Published var maxTimeForCurrentCommand: TimeInterval = GameConstants.initialTimePerCommand
     @Published var isPlaying: Bool = false
     @Published var isGameOver: Bool = false
     @Published var didSpeedUp: Bool = false
