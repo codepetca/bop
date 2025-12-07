@@ -75,6 +75,91 @@ struct GameViewModelTests {
         #expect(haptics.playedEvents.contains(.failure))
         #expect(sounds.playedEvents.contains(.failure))
         #expect(detector.lastActiveCommand == nil)
+        #expect(timers.cancelledCount > 0)
+        #expect(viewModel.isGameOver == true)
+        #expect(viewModel.isPlaying == false)
+    }
+
+    @Test("Timeout from scheduler ends game and clears command")
+    func testTimeoutTriggeredByScheduler() {
+        let detector = FakeDetector()
+        let timers = FakeTimerScheduler()
+        let haptics = FakeHaptics()
+        let sounds = FakeSounds()
+        let viewModel = GameViewModel(
+            haptics: haptics,
+            sounds: sounds,
+            detector: detector,
+            timerScheduler: timers,
+            skipCountdown: true
+        )
+
+        viewModel.startGame()
+        timers.triggerTimeout()
+
+        #expect(viewModel.isGameOver == true)
+        #expect(viewModel.isPlaying == false)
+        #expect(detector.lastActiveCommand == nil)
+        #expect(haptics.playedEvents.contains(.failure))
+        #expect(sounds.playedEvents.contains(.failure))
+        #expect(timers.cancelledCount > 0)
+    }
+
+    @Test("Reset restarts detector and timer and clears transient flags")
+    func testResetGameRestartsLoop() {
+        let detector = FakeDetector()
+        let timers = FakeTimerScheduler()
+        let haptics = FakeHaptics()
+        let sounds = FakeSounds()
+        let viewModel = GameViewModel(
+            haptics: haptics,
+            sounds: sounds,
+            detector: detector,
+            timerScheduler: timers,
+            skipCountdown: true
+        )
+
+        viewModel.startGame()
+        timers.triggerTimeout()
+
+        viewModel.resetGame()
+
+        #expect(detector.startCount == 2) // initial start + reset start
+        #expect(detector.lastActiveCommand != nil)
+        #expect(timers.startedCount == 2)
+        #expect(viewModel.isPlaying == true)
+        #expect(viewModel.isGameOver == false)
+        #expect(viewModel.showingSpeedUpMessage == false)
+    }
+
+    @Test("Speed-up cue triggers feedback and pauses timer")
+    func testSpeedUpCuePlaysFeedback() {
+        let detector = FakeDetector()
+        let timers = FakeTimerScheduler()
+        let haptics = FakeHaptics()
+        let sounds = FakeSounds()
+        let randomizer = SequenceCommandRandomizer(sequence: [.shake, .flickUp, .twist])
+        let viewModel = GameViewModel(
+            haptics: haptics,
+            sounds: sounds,
+            detector: detector,
+            timerScheduler: timers,
+            commandRandomizer: randomizer,
+            skipCountdown: true
+        )
+
+        viewModel.startGame()
+
+        for _ in 0..<GameConstants.successesPerDifficultyRamp {
+            guard let command = viewModel.currentCommand else { break }
+            viewModel.handleGesture(command)
+        }
+
+        #expect(haptics.playedEvents.contains(.speedUp))
+        #expect(sounds.playedEvents.contains(.speedUp))
+        #expect(viewModel.didSpeedUp == true)
+        #expect(viewModel.showingSpeedUpMessage == true)
+        #expect(timers.cancelledCount >= 3) // initial start + each restart + pause
     }
 }
 
@@ -84,10 +169,19 @@ private final class FakeDetector: GestureDetecting {
     weak var delegate: GestureDetectorDelegate?
     var started = false
     var stopped = false
+    var startCount = 0
+    var stopCount = 0
     var lastActiveCommand: GestureType?
 
-    func start() { started = true }
-    func stop() { stopped = true }
+    func start() {
+        started = true
+        startCount += 1
+    }
+
+    func stop() {
+        stopped = true
+        stopCount += 1
+    }
 
     func setActiveCommand(_ command: GestureType?) {
         lastActiveCommand = command
@@ -100,6 +194,10 @@ private final class FakeTimerScheduler: TimerScheduling {
     var startedWithDuration: TimeInterval?
     var startedCount = 0
     var cancelledCount = 0
+    private(set) var lastTickInterval: TimeInterval?
+    private var onTickHandler: ((TimeInterval) -> Void)?
+    private var onTimeoutHandler: (() -> Void)?
+    private var isRunning = false
 
     func start(
         duration: TimeInterval,
@@ -109,10 +207,25 @@ private final class FakeTimerScheduler: TimerScheduling {
     ) {
         startedWithDuration = duration
         startedCount += 1
+        lastTickInterval = tickInterval
+        onTickHandler = onTick
+        onTimeoutHandler = onTimeout
+        isRunning = true
     }
 
     func cancel() {
-        cancelledCount += 1
+        if isRunning {
+            cancelledCount += 1
+            isRunning = false
+        }
+    }
+
+    func triggerTimeout() {
+        onTimeoutHandler?()
+    }
+
+    func tick(_ remaining: TimeInterval) {
+        onTickHandler?(remaining)
     }
 }
 
@@ -127,5 +240,21 @@ private final class FakeSounds: SoundManager {
     var playedEvents: [GameFeedbackEvent] = []
     override func play(_ event: GameFeedbackEvent) {
         playedEvents.append(event)
+    }
+}
+
+private final class SequenceCommandRandomizer: CommandRandomizer {
+    private let sequence: [GestureType]
+    private var currentIndex: Int = 0
+
+    init(sequence: [GestureType]) {
+        self.sequence = sequence
+    }
+
+    func nextCommand(excluding: GestureType?) -> GestureType {
+        guard !sequence.isEmpty else { return .shake }
+        let command = sequence[currentIndex % sequence.count]
+        currentIndex += 1
+        return command
     }
 }

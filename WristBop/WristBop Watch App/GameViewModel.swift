@@ -34,6 +34,7 @@ class GameViewModel: ObservableObject {
     private let detector: GestureDetecting
     private let timerScheduler: TimerScheduling
     private let tickInterval: TimeInterval = 0.05
+    private let speedUpMessageDuration: UInt64
 
     // Timer management
     nonisolated(unsafe) private var countdownTimer: Timer?
@@ -44,11 +45,14 @@ class GameViewModel: ObservableObject {
         sounds: SoundManager,
         detector: GestureDetecting,
         timerScheduler: TimerScheduling,
+        commandRandomizer: CommandRandomizer = SystemCommandRandomizer(),
+        highScoreStore: HighScoreStore = UserDefaultsHighScoreStore(),
+        speedUpMessageDuration: UInt64 = 2_000_000_000,
         skipCountdown: Bool = false
     ) {
         self.engine = GameEngine(
-            commandRandomizer: SystemCommandRandomizer(),
-            highScoreStore: UserDefaultsHighScoreStore()
+            commandRandomizer: commandRandomizer,
+            highScoreStore: highScoreStore
         )
         self.haptics = haptics
         self.sounds = sounds
@@ -56,6 +60,7 @@ class GameViewModel: ObservableObject {
         self.timerScheduler = timerScheduler
         self.highScore = engine.state.highScore
         self.lastScore = UserDefaults.standard.integer(forKey: "WristBopLastScore")
+        self.speedUpMessageDuration = speedUpMessageDuration
         self.shouldSkipCountdown = skipCountdown
     }
 
@@ -65,6 +70,8 @@ class GameViewModel: ObservableObject {
             sounds: SoundManager(),
             detector: GestureDetector(),
             timerScheduler: SystemTimerScheduler(),
+            commandRandomizer: SystemCommandRandomizer(),
+            highScoreStore: UserDefaultsHighScoreStore(),
             skipCountdown: skipCountdown
         )
     }
@@ -74,6 +81,8 @@ class GameViewModel: ObservableObject {
     // MARK: - Game Control
 
     func startGame() {
+        resetTransientUIState()
+
         if shouldSkipCountdown {
             actuallyStartGame()
         } else {
@@ -92,11 +101,16 @@ class GameViewModel: ObservableObject {
     }
 
     func resetGame() {
+        resetTransientUIState()
+        stopCountdownTimer()
         stopTimer()
+        detector.stop()
+        detector.delegate = self
         detector.setActiveCommand(nil)
         engine.startGame()
         updateFromEngineState()
         detector.setActiveCommand(engine.state.currentCommand)
+        detector.start()
         startTimer()
     }
 
@@ -175,6 +189,7 @@ class GameViewModel: ObservableObject {
     private func handleTimeout() {
         stopTimer()
         detector.setActiveCommand(nil)
+        detector.stop()
 
         // Save last score before ending game
         lastScore = engine.state.score
@@ -270,7 +285,7 @@ class GameViewModel: ObservableObject {
 
         // Show message for 2 seconds, then resume
         Task {
-            try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+            try? await Task.sleep(nanoseconds: speedUpMessageDuration)
             await MainActor.run {
                 self.showingSpeedUpMessage = false
                 self.startTimer()
@@ -299,6 +314,15 @@ class GameViewModel: ObservableObject {
         } else {
             detector.setActiveCommand(nil)
         }
+    }
+
+    private func resetTransientUIState() {
+        showingSpeedUpMessage = false
+        showingCountdown = false
+        showingGo = false
+        canTapToSkipGameOver = false
+        didSpeedUp = false
+        isGameOver = false
     }
 
     @MainActor deinit {
