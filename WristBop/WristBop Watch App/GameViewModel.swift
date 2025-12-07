@@ -17,7 +17,7 @@ class GameViewModel: ObservableObject {
     @Published var highScore: Int = 0
     @Published var lastScore: Int = 0
     @Published var timeRemaining: TimeInterval = 0
-    @Published var maxTimeForCurrentCommand: TimeInterval = 2.4
+    @Published var maxTimeForCurrentCommand: TimeInterval = GameConstants.initialTimePerCommand
     @Published var isPlaying: Bool = false
     @Published var isGameOver: Bool = false
     @Published var didSpeedUp: Bool = false
@@ -29,51 +29,109 @@ class GameViewModel: ObservableObject {
 
     // Game engine
     private var engine: GameEngine
-    private let haptics: HapticsManager
-    private let sounds: SoundManager
+    private let haptics: any HapticsPlaying
+    private let sounds: any SoundPlaying
+    private let detector: GestureDetecting
+    private let timerScheduler: TimerScheduling
+    private let tickInterval: TimeInterval
+    private let speedUpMessageDuration: UInt64
+
+    // Task management for async operations
+    private var speedUpTask: Task<Void, Never>?
+    private var countdownGoTask: Task<Void, Never>?
+    private var gameOverSkipTask: Task<Void, Never>?
+    private var gameOverAutoReturnTask: Task<Void, Never>?
 
     // Timer management
-    nonisolated(unsafe) private var timer: Timer?
-    private var commandStartTime: Date?
     nonisolated(unsafe) private var countdownTimer: Timer?
     private var countdownStartTime: Date?
 
     init(
-        haptics: HapticsManager = HapticsManager(),
-        sounds: SoundManager = SoundManager()
+        haptics: any HapticsPlaying,
+        sounds: any SoundPlaying,
+        detector: GestureDetecting,
+        timerScheduler: TimerScheduling,
+        commandRandomizer: CommandRandomizer = SystemCommandRandomizer(),
+        highScoreStore: HighScoreStore = UserDefaultsHighScoreStore(),
+        tickInterval: TimeInterval = 0.05,
+        speedUpMessageDuration: UInt64 = 2_000_000_000,
+        skipCountdown: Bool = false
     ) {
         self.engine = GameEngine(
-            commandRandomizer: SystemCommandRandomizer(),
-            highScoreStore: UserDefaultsHighScoreStore()
+            commandRandomizer: commandRandomizer,
+            highScoreStore: highScoreStore
         )
         self.haptics = haptics
         self.sounds = sounds
+        self.detector = detector
+        self.timerScheduler = timerScheduler
+        self.tickInterval = tickInterval
         self.highScore = engine.state.highScore
         self.lastScore = UserDefaults.standard.integer(forKey: "WristBopLastScore")
+        self.speedUpMessageDuration = speedUpMessageDuration
+        self.shouldSkipCountdown = skipCountdown
+
+        // Set detector delegate once - it never changes during the view model's lifetime
+        detector.delegate = self
     }
+
+    convenience init(skipCountdown: Bool = false) {
+        self.init(
+            haptics: HapticsManager(),
+            sounds: SoundManager(),
+            detector: GestureDetector(),
+            timerScheduler: SystemTimerScheduler(),
+            commandRandomizer: SystemCommandRandomizer(),
+            highScoreStore: UserDefaultsHighScoreStore(),
+            skipCountdown: skipCountdown
+        )
+    }
+
+    private let shouldSkipCountdown: Bool
 
     // MARK: - Game Control
 
     func startGame() {
-        // Start countdown instead of game immediately
-        startCountdown()
+        resetTransientUIState()
+
+        if shouldSkipCountdown {
+            actuallyStartGame()
+        } else {
+            // Start countdown instead of game immediately
+            startCountdown()
+        }
     }
 
     private func actuallyStartGame() {
         engine.startGame()
         updateFromEngineState()
+        detector.start()
+        detector.setActiveCommand(engine.state.currentCommand)
         startTimer()
     }
 
     func resetGame() {
+        resetTransientUIState()
+        stopCountdownTimer()
         stopTimer()
+        detector.stop()
+        detector.setActiveCommand(nil)
         engine.startGame()
         updateFromEngineState()
+        detector.setActiveCommand(engine.state.currentCommand)
+        detector.start()
         startTimer()
     }
 
     func endGame() {
+        // Cancel any pending tasks before ending
+        speedUpTask?.cancel()
+        speedUpTask = nil
+        countdownGoTask?.cancel()
+        countdownGoTask = nil
+
         stopTimer()
+        detector.stop()
         engine.endGame()
         updateFromEngineState()
     }
@@ -117,46 +175,32 @@ class GameViewModel: ObservableObject {
 
     private func startTimer() {
         stopTimer()
-        commandStartTime = Date()
 
         // Capture the current time window for this command
         maxTimeForCurrentCommand = engine.state.timePerCommand
         haptics.play(.tick)
         sounds.play(.tick)
 
-        // Start a timer that fires frequently to update UI
-        // Use RunLoop.main to ensure timer runs on main thread
-        timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            Task { @MainActor [weak self] in
-                guard let self = self else { return }
-                self.updateTimer()
+        timerScheduler.start(
+            duration: engine.state.timePerCommand,
+            tickInterval: tickInterval,
+            onTick: { [weak self] remaining in
+                self?.timeRemaining = remaining
+            },
+            onTimeout: { [weak self] in
+                self?.handleTimeout()
             }
-        }
+        )
     }
 
     private func stopTimer() {
-        timer?.invalidate()
-        timer = nil
-        commandStartTime = nil
-    }
-
-    private func updateTimer() {
-        guard let startTime = commandStartTime else { return }
-
-        let elapsed = Date().timeIntervalSince(startTime)
-        let remaining = engine.state.timePerCommand - elapsed
-
-        if remaining <= 0 {
-            // Time's up!
-            handleTimeout()
-        } else {
-            timeRemaining = remaining
-        }
+        timerScheduler.cancel()
     }
 
     private func handleTimeout() {
         stopTimer()
+        detector.setActiveCommand(nil)
+        detector.stop()
 
         // Save last score before ending game
         lastScore = engine.state.score
@@ -169,7 +213,7 @@ class GameViewModel: ObservableObject {
         sounds.play(.failure)
 
         // After 3 seconds, allow tap to skip
-        Task {
+        gameOverSkipTask = Task {
             try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
             await MainActor.run {
                 self.canTapToSkipGameOver = true
@@ -177,7 +221,7 @@ class GameViewModel: ObservableObject {
         }
 
         // Auto-return to menu after 8 seconds total
-        Task {
+        gameOverAutoReturnTask = Task {
             try? await Task.sleep(nanoseconds: 8_000_000_000) // 8 seconds
             await MainActor.run {
                 // Reset to menu
@@ -187,6 +231,12 @@ class GameViewModel: ObservableObject {
     }
 
     func returnToMenu() {
+        // Cancel any pending game-over tasks
+        gameOverSkipTask?.cancel()
+        gameOverSkipTask = nil
+        gameOverAutoReturnTask?.cancel()
+        gameOverAutoReturnTask = nil
+
         isPlaying = false
         isGameOver = false
         canTapToSkipGameOver = false
@@ -236,7 +286,7 @@ class GameViewModel: ObservableObject {
         showingGo = true
 
         // Show "GO!" for 0.5 seconds, then start game
-        Task {
+        countdownGoTask = Task {
             try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
             await MainActor.run {
                 self.showingCountdown = false
@@ -251,8 +301,8 @@ class GameViewModel: ObservableObject {
         showingSpeedUpMessage = true
 
         // Show message for 2 seconds, then resume
-        Task {
-            try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+        speedUpTask = Task {
+            try? await Task.sleep(nanoseconds: speedUpMessageDuration)
             await MainActor.run {
                 self.showingSpeedUpMessage = false
                 self.startTimer()
@@ -274,11 +324,49 @@ class GameViewModel: ObservableObject {
 
         // Set speed-up flag (used for UI indication)
         didSpeedUp = state.didTriggerSpeedUpCue
+
+        // Keep detector in sync with active command when playing
+        if state.isPlaying, !state.isGameOver {
+            detector.setActiveCommand(state.currentCommand)
+        } else {
+            detector.setActiveCommand(nil)
+        }
     }
 
-    deinit {
-        // Invalidate timers directly since deinit can't be MainActor
-        timer?.invalidate()
+    private func resetTransientUIState() {
+        // Cancel all pending async tasks
+        speedUpTask?.cancel()
+        speedUpTask = nil
+        countdownGoTask?.cancel()
+        countdownGoTask = nil
+        gameOverSkipTask?.cancel()
+        gameOverSkipTask = nil
+        gameOverAutoReturnTask?.cancel()
+        gameOverAutoReturnTask = nil
+
+        showingSpeedUpMessage = false
+        showingCountdown = false
+        showingGo = false
+        canTapToSkipGameOver = false
+        didSpeedUp = false
+        isGameOver = false
+    }
+
+    @MainActor deinit {
+        // Clean up timers and tasks on teardown
+        timerScheduler.cancel()
         countdownTimer?.invalidate()
+
+        // Cancel all pending tasks
+        speedUpTask?.cancel()
+        countdownGoTask?.cancel()
+        gameOverSkipTask?.cancel()
+        gameOverAutoReturnTask?.cancel()
+    }
+}
+
+extension GameViewModel: GestureDetectorDelegate {
+    func gestureDetector(_ detector: GestureDetector, didDetect gesture: GestureType) {
+        handleGesture(gesture)
     }
 }

@@ -1,6 +1,13 @@
 import AVFoundation
 
-final class SoundManager {
+/// Protocol for playing sound effects during gameplay.
+/// Implementations trigger appropriate sounds for game events.
+protocol SoundPlaying {
+    /// Plays sound effect for the specified game event
+    func play(_ event: GameFeedbackEvent)
+}
+
+final class SoundManager: SoundPlaying {
     private var players: [GameFeedbackEvent: AVAudioPlayer] = [:]
     private let bundle: Bundle
 
