@@ -1,7 +1,9 @@
 import AVFoundation
 
-/// Abstraction for playing sound feedback (protocol to allow testing doubles)
+/// Protocol for playing sound effects during gameplay.
+/// Implementations trigger appropriate sounds for game events.
 protocol SoundPlaying {
+    /// Plays sound effect for the specified game event
     func play(_ event: GameFeedbackEvent)
 }
 

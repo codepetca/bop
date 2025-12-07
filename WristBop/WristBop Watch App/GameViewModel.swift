@@ -33,8 +33,14 @@ class GameViewModel: ObservableObject {
     private let sounds: any SoundPlaying
     private let detector: GestureDetecting
     private let timerScheduler: TimerScheduling
-    private let tickInterval: TimeInterval = 0.05
+    private let tickInterval: TimeInterval
     private let speedUpMessageDuration: UInt64
+
+    // Task management for async operations
+    private var speedUpTask: Task<Void, Never>?
+    private var countdownGoTask: Task<Void, Never>?
+    private var gameOverSkipTask: Task<Void, Never>?
+    private var gameOverAutoReturnTask: Task<Void, Never>?
 
     // Timer management
     nonisolated(unsafe) private var countdownTimer: Timer?
@@ -47,6 +53,7 @@ class GameViewModel: ObservableObject {
         timerScheduler: TimerScheduling,
         commandRandomizer: CommandRandomizer = SystemCommandRandomizer(),
         highScoreStore: HighScoreStore = UserDefaultsHighScoreStore(),
+        tickInterval: TimeInterval = 0.05,
         speedUpMessageDuration: UInt64 = 2_000_000_000,
         skipCountdown: Bool = false
     ) {
@@ -58,10 +65,14 @@ class GameViewModel: ObservableObject {
         self.sounds = sounds
         self.detector = detector
         self.timerScheduler = timerScheduler
+        self.tickInterval = tickInterval
         self.highScore = engine.state.highScore
         self.lastScore = UserDefaults.standard.integer(forKey: "WristBopLastScore")
         self.speedUpMessageDuration = speedUpMessageDuration
         self.shouldSkipCountdown = skipCountdown
+
+        // Set detector delegate once - it never changes during the view model's lifetime
+        detector.delegate = self
     }
 
     convenience init(skipCountdown: Bool = false) {
@@ -94,7 +105,6 @@ class GameViewModel: ObservableObject {
     private func actuallyStartGame() {
         engine.startGame()
         updateFromEngineState()
-        detector.delegate = self
         detector.start()
         detector.setActiveCommand(engine.state.currentCommand)
         startTimer()
@@ -105,7 +115,6 @@ class GameViewModel: ObservableObject {
         stopCountdownTimer()
         stopTimer()
         detector.stop()
-        detector.delegate = self
         detector.setActiveCommand(nil)
         engine.startGame()
         updateFromEngineState()
@@ -115,6 +124,12 @@ class GameViewModel: ObservableObject {
     }
 
     func endGame() {
+        // Cancel any pending tasks before ending
+        speedUpTask?.cancel()
+        speedUpTask = nil
+        countdownGoTask?.cancel()
+        countdownGoTask = nil
+
         stopTimer()
         detector.stop()
         engine.endGame()
@@ -198,7 +213,7 @@ class GameViewModel: ObservableObject {
         sounds.play(.failure)
 
         // After 3 seconds, allow tap to skip
-        Task {
+        gameOverSkipTask = Task {
             try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
             await MainActor.run {
                 self.canTapToSkipGameOver = true
@@ -206,7 +221,7 @@ class GameViewModel: ObservableObject {
         }
 
         // Auto-return to menu after 8 seconds total
-        Task {
+        gameOverAutoReturnTask = Task {
             try? await Task.sleep(nanoseconds: 8_000_000_000) // 8 seconds
             await MainActor.run {
                 // Reset to menu
@@ -216,6 +231,12 @@ class GameViewModel: ObservableObject {
     }
 
     func returnToMenu() {
+        // Cancel any pending game-over tasks
+        gameOverSkipTask?.cancel()
+        gameOverSkipTask = nil
+        gameOverAutoReturnTask?.cancel()
+        gameOverAutoReturnTask = nil
+
         isPlaying = false
         isGameOver = false
         canTapToSkipGameOver = false
@@ -265,7 +286,7 @@ class GameViewModel: ObservableObject {
         showingGo = true
 
         // Show "GO!" for 0.5 seconds, then start game
-        Task {
+        countdownGoTask = Task {
             try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
             await MainActor.run {
                 self.showingCountdown = false
@@ -280,7 +301,7 @@ class GameViewModel: ObservableObject {
         showingSpeedUpMessage = true
 
         // Show message for 2 seconds, then resume
-        Task {
+        speedUpTask = Task {
             try? await Task.sleep(nanoseconds: speedUpMessageDuration)
             await MainActor.run {
                 self.showingSpeedUpMessage = false
@@ -313,6 +334,16 @@ class GameViewModel: ObservableObject {
     }
 
     private func resetTransientUIState() {
+        // Cancel all pending async tasks
+        speedUpTask?.cancel()
+        speedUpTask = nil
+        countdownGoTask?.cancel()
+        countdownGoTask = nil
+        gameOverSkipTask?.cancel()
+        gameOverSkipTask = nil
+        gameOverAutoReturnTask?.cancel()
+        gameOverAutoReturnTask = nil
+
         showingSpeedUpMessage = false
         showingCountdown = false
         showingGo = false
@@ -322,9 +353,15 @@ class GameViewModel: ObservableObject {
     }
 
     @MainActor deinit {
-        // Clean up timers on teardown
+        // Clean up timers and tasks on teardown
         timerScheduler.cancel()
         countdownTimer?.invalidate()
+
+        // Cancel all pending tasks
+        speedUpTask?.cancel()
+        countdownGoTask?.cancel()
+        gameOverSkipTask?.cancel()
+        gameOverAutoReturnTask?.cancel()
     }
 }
 

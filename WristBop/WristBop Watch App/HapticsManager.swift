@@ -1,7 +1,9 @@
 import WatchKit
 
-/// Abstraction for playing haptic feedback (protocol to allow testing doubles)
+/// Protocol for playing haptic feedback during gameplay.
+/// Implementations trigger appropriate haptic patterns for game events.
 protocol HapticsPlaying {
+    /// Plays haptic feedback for the specified game event
     func play(_ event: GameFeedbackEvent)
 }
 

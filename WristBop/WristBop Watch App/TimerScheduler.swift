@@ -1,12 +1,22 @@
 import Foundation
 
+/// Protocol for scheduling game command timers with tick updates and timeout callbacks.
+/// Implementations should handle timer lifecycle and ensure callbacks are invoked appropriately.
 protocol TimerScheduling: AnyObject {
+    /// Starts a timer for the specified duration with regular tick callbacks.
+    /// - Parameters:
+    ///   - duration: Total time before timeout (seconds)
+    ///   - tickInterval: How often to invoke onTick callback (seconds)
+    ///   - onTick: Called periodically with remaining time
+    ///   - onTimeout: Called once when duration expires
     func start(
         duration: TimeInterval,
         tickInterval: TimeInterval,
         onTick: @escaping (TimeInterval) -> Void,
         onTimeout: @escaping () -> Void
     )
+
+    /// Cancels the running timer. Safe to call multiple times.
     func cancel()
 }
 

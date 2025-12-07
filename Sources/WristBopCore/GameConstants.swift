@@ -3,6 +3,7 @@ import Foundation
 /// Centralized gameplay tuning constants
 public enum GameConstants {
     /// Starting time window per command (seconds)
+    /// Increased from 2.4s to 3.0s in PR #15 for better initial playability
     public static let initialTimePerCommand: TimeInterval = 3.0
 
     /// Minimum time window (speed floor)

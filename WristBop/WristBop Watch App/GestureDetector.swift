@@ -7,11 +7,22 @@ protocol GestureDetectorDelegate: AnyObject {
     func gestureDetector(_ detector: GestureDetector, didDetect gesture: GestureType)
 }
 
+/// Protocol for detecting player gestures during gameplay.
+/// Implementations monitor device sensors and report detected gestures via delegate.
 protocol GestureDetecting: AnyObject {
     var delegate: GestureDetectorDelegate? { get set }
+
+    /// Starts monitoring for gestures
     func start()
+
+    /// Stops monitoring and clears internal state
     func stop()
+
+    /// Sets which gesture to actively detect. Pass nil to stop detecting.
+    /// - Parameter command: The gesture type to detect, or nil to clear
     func setActiveCommand(_ command: GestureType?)
+
+    /// Testing hook to inject motion samples for deterministic testing
     func injectSample(_ sample: MotionSample)
 }
 

@@ -57,6 +57,38 @@ struct GameViewModelTests {
         #expect(detector.lastActiveCommand != nil)
     }
 
+    @Test("Wrong gesture is silently ignored")
+    func testWrongGestureIgnored() {
+        let detector = FakeDetector()
+        let timers = FakeTimerScheduler()
+        let haptics = FakeHaptics()
+        let sounds = FakeSounds()
+        let randomizer = SequenceCommandRandomizer(sequence: [.shake, .flickUp])
+        let viewModel = GameViewModel(
+            haptics: haptics,
+            sounds: sounds,
+            detector: detector,
+            timerScheduler: timers,
+            commandRandomizer: randomizer,
+            skipCountdown: true
+        )
+
+        viewModel.startGame()
+        let correctCommand = viewModel.currentCommand!
+        let wrongCommand: GestureType = (correctCommand == .shake) ? .flickUp : .shake
+        let initialScore = viewModel.score
+
+        // Send wrong gesture
+        viewModel.handleGesture(wrongCommand)
+
+        // Verify no state changes occurred
+        #expect(viewModel.score == initialScore)
+        #expect(viewModel.currentCommand == correctCommand)
+        #expect(!haptics.playedEvents.contains(.success))
+        #expect(!sounds.playedEvents.contains(.success))
+        #expect(timers.startedCount == 1) // Only initial start, no restart
+    }
+
     @Test("Timeout ends game and clears command")
     func testTimeoutTriggeredByScheduler() {
         let detector = FakeDetector()
@@ -137,6 +169,45 @@ struct GameViewModelTests {
         #expect(viewModel.didSpeedUp == true)
         #expect(viewModel.showingSpeedUpMessage == true)
         #expect(timers.cancelledCount >= 3) // initial start + each restart + pause
+    }
+
+    @Test("Gestures blocked during speed-up message")
+    func testGestureBlockedDuringSpeedUp() {
+        let detector = FakeDetector()
+        let timers = FakeTimerScheduler()
+        let haptics = FakeHaptics()
+        let sounds = FakeSounds()
+        let randomizer = SequenceCommandRandomizer(sequence: [.shake, .flickUp, .twist, .spinCrown])
+        let viewModel = GameViewModel(
+            haptics: haptics,
+            sounds: sounds,
+            detector: detector,
+            timerScheduler: timers,
+            commandRandomizer: randomizer,
+            skipCountdown: true
+        )
+
+        viewModel.startGame()
+
+        // Trigger speed-up
+        for _ in 0..<GameConstants.successesPerDifficultyRamp {
+            guard let command = viewModel.currentCommand else { break }
+            viewModel.handleGesture(command)
+        }
+
+        #expect(viewModel.showingSpeedUpMessage == true)
+        let scoreBeforeBlocked = viewModel.score
+        let successCountBefore = haptics.playedEvents.filter { $0 == .success }.count
+
+        // Try to send gesture while speed-up showing
+        if let command = viewModel.currentCommand {
+            viewModel.handleGesture(command)
+        }
+
+        // Verify gesture was ignored
+        #expect(viewModel.score == scoreBeforeBlocked)
+        let successCountAfter = haptics.playedEvents.filter { $0 == .success }.count
+        #expect(successCountAfter == successCountBefore)
     }
 }
 
