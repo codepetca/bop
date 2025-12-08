@@ -83,9 +83,19 @@ Notes:
    - Debug overlay (compile-time flag) for motion data
 
 3. **WristBop (iOS)** (`WristBop/WristBop/`)
-   - iOS companion app
-   - Future features: level selection, multiplayer, leaderboards
-   - Shares `WristBopCore` game logic with Watch app  
+   - iOS companion app scaffold (completed)
+   - **Navigation Structure**: NavigationStack-based with HomeView as root
+   - **Views**:
+     - `HomeView`: Main screen with high score display and feature navigation
+     - `LevelSelectionView`: Placeholder for future level/difficulty selection
+     - `SettingsView`: Placeholder for app customization
+     - `StatsView`: Placeholder for stats tracking and leaderboards
+     - `AboutView`: App information and game instructions
+   - **Theme System**: `Theme.swift` provides centralized color scheme ("Electric Pulse" theme with electric purple #6366F1 and cyan #22D3EE accents)
+   - **WristBopCore Integration**: Linked and verified via unit tests
+   - **High Score Sharing**: Uses same `UserDefaults` key as watchOS app for seamless sync
+   - Future features: full implementation of level selection, multiplayer, Game Center leaderboards
+   - Build command: `xcodebuild -scheme "WristBop" -destination 'platform=iOS Simulator,name=iPhone 15' test`  
 
 ---
 
