@@ -220,6 +220,7 @@ private final class FakeDetector: GestureDetecting {
     var startCount = 0
     var stopCount = 0
     var lastActiveCommand: GestureType?
+    var debugUpdateHandler: ((GestureDebugInfo) -> Void)?
 
     func start() {
         started = true

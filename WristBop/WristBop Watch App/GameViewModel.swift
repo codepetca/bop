@@ -6,8 +6,20 @@
 //
 
 import SwiftUI
+import CoreMotion
 import Combine
 import WristBopCore
+
+#if DEBUG_OVERLAY
+struct DebugOverlayState {
+    var acceleration: CMAcceleration?
+    var rotationRate: CMRotationRate?
+    var crownAccumulatedDelta: Double = 0
+    var activeCommand: GestureType?
+    var lastDetectedGesture: GestureType?
+    var detectorActive: Bool = false
+}
+#endif
 
 @MainActor
 class GameViewModel: ObservableObject {
@@ -26,6 +38,9 @@ class GameViewModel: ObservableObject {
     @Published var showingCountdown: Bool = false
     @Published var countdownTimeRemaining: TimeInterval = 0
     @Published var showingGo: Bool = false
+#if DEBUG_OVERLAY
+    @Published var debugOverlayState = DebugOverlayState()
+#endif
 
     // Game engine
     private var engine: GameEngine
@@ -73,6 +88,17 @@ class GameViewModel: ObservableObject {
 
         // Set detector delegate once - it never changes during the view model's lifetime
         detector.delegate = self
+#if DEBUG_OVERLAY
+        detector.debugUpdateHandler = { [weak self] info in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.debugOverlayState.acceleration = info.acceleration
+                self.debugOverlayState.rotationRate = info.rotationRate
+                self.debugOverlayState.crownAccumulatedDelta = info.crownAccumulatedDelta
+                self.debugOverlayState.activeCommand = info.activeCommand
+            }
+        }
+#endif
     }
 
     convenience init(skipCountdown: Bool = false) {
@@ -106,6 +132,9 @@ class GameViewModel: ObservableObject {
         engine.startGame()
         updateFromEngineState()
         detector.start()
+#if DEBUG_OVERLAY
+        debugOverlayState.detectorActive = true
+#endif
         detector.setActiveCommand(engine.state.currentCommand)
         startTimer()
     }
@@ -115,11 +144,17 @@ class GameViewModel: ObservableObject {
         stopCountdownTimer()
         stopTimer()
         detector.stop()
+#if DEBUG_OVERLAY
+        debugOverlayState.detectorActive = false
+#endif
         detector.setActiveCommand(nil)
         engine.startGame()
         updateFromEngineState()
         detector.setActiveCommand(engine.state.currentCommand)
         detector.start()
+#if DEBUG_OVERLAY
+        debugOverlayState.detectorActive = true
+#endif
         startTimer()
     }
 
@@ -132,6 +167,9 @@ class GameViewModel: ObservableObject {
 
         stopTimer()
         detector.stop()
+#if DEBUG_OVERLAY
+        debugOverlayState.detectorActive = false
+#endif
         engine.endGame()
         updateFromEngineState()
     }
@@ -148,6 +186,10 @@ class GameViewModel: ObservableObject {
 
         // Only process if it's the correct gesture
         guard gesture == currentCommand else { return }
+
+#if DEBUG_OVERLAY
+        debugOverlayState.lastDetectedGesture = gesture
+#endif
 
         let previousScore = engine.state.score
 
@@ -201,6 +243,9 @@ class GameViewModel: ObservableObject {
         stopTimer()
         detector.setActiveCommand(nil)
         detector.stop()
+#if DEBUG_OVERLAY
+        debugOverlayState.detectorActive = false
+#endif
 
         // Save last score before ending game
         lastScore = engine.state.score
@@ -240,6 +285,10 @@ class GameViewModel: ObservableObject {
         isPlaying = false
         isGameOver = false
         canTapToSkipGameOver = false
+#if DEBUG_OVERLAY
+        debugOverlayState.detectorActive = false
+        debugOverlayState.activeCommand = nil
+#endif
     }
 
     // MARK: - Countdown Management
@@ -321,6 +370,9 @@ class GameViewModel: ObservableObject {
         isPlaying = state.isPlaying
         isGameOver = state.isGameOver
         timeRemaining = state.timePerCommand
+#if DEBUG_OVERLAY
+        debugOverlayState.activeCommand = state.currentCommand
+#endif
 
         // Set speed-up flag (used for UI indication)
         didSpeedUp = state.didTriggerSpeedUpCue
@@ -350,6 +402,12 @@ class GameViewModel: ObservableObject {
         canTapToSkipGameOver = false
         didSpeedUp = false
         isGameOver = false
+#if DEBUG_OVERLAY
+        debugOverlayState.lastDetectedGesture = nil
+        debugOverlayState.acceleration = nil
+        debugOverlayState.rotationRate = nil
+        debugOverlayState.crownAccumulatedDelta = 0
+#endif
     }
 
     @MainActor deinit {

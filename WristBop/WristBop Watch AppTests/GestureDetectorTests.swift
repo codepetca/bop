@@ -87,7 +87,7 @@ private final class CapturingDelegate: GestureDetectorDelegate {
 }
 
 private final class FakeMotionManager: MotionManagerProtocol {
-    var isDeviceMotionAvailable: Bool { false }
+    var isDeviceMotionAvailable: Bool { true }
     var deviceMotionUpdateInterval: TimeInterval = 0
 
     func startDeviceMotionUpdates(to queue: OperationQueue, withHandler handler: @escaping CMDeviceMotionHandler) {}

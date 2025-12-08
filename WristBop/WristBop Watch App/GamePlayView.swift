@@ -59,65 +59,8 @@ struct GamePlayView: View {
                     .foregroundColor(.secondary)
 
                 Spacer()
-
-                // Gesture buttons (2x2 grid)
-                VStack(spacing: 8) {
-                    HStack(spacing: 8) {
-                        gestureButton(for: .shake)
-                        gestureButton(for: .flickUp)
-                    }
-                    HStack(spacing: 8) {
-                        gestureButton(for: .twist)
-                        gestureButton(for: .spinCrown)
-                    }
-                }
             }
             .padding()
-        }
-    }
-
-    // MARK: - Helper Views
-
-    private func gestureButton(for gesture: GestureType) -> some View {
-        Button(action: {
-            viewModel.handleGesture(gesture)
-        }) {
-            VStack {
-                gestureIcon(for: gesture)
-                    .font(.title3)
-                Text(gestureName(for: gesture))
-                    .font(.caption2)
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 60)
-        }
-        .buttonStyle(.bordered)
-        .tint(viewModel.currentCommand == gesture ? .green : .gray)
-    }
-
-    private func gestureIcon(for gesture: GestureType) -> some View {
-        switch gesture {
-        case .shake:
-            return Image(systemName: "iphone.radiowaves.left.and.right")
-        case .flickUp:
-            return Image(systemName: "arrow.up")
-        case .twist:
-            return Image(systemName: "arrow.clockwise")
-        case .spinCrown:
-            return Image(systemName: "digitalcrown.horizontal.press")
-        }
-    }
-
-    private func gestureName(for gesture: GestureType) -> String {
-        switch gesture {
-        case .shake:
-            return "Shake"
-        case .flickUp:
-            return "Flick"
-        case .twist:
-            return "Twist"
-        case .spinCrown:
-            return "Spin"
         }
     }
 }
