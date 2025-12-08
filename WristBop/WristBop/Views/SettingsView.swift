@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import WristBopCore
 
 /// Placeholder view for future settings and customization
 /// Will allow users to configure difficulty, haptics, sounds, and more
@@ -55,7 +54,7 @@ struct SettingsView: View {
             }
 
             Section {
-                Text("Game version 1.0")
+                Text("Game version \(Theme.appVersion)")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -67,7 +66,7 @@ struct SettingsView: View {
 }
 
 /// Preview row for a settings option
-struct SettingsRow: View {
+private struct SettingsRow: View {
     let icon: String
     let title: String
     let value: String
@@ -90,6 +89,10 @@ struct SettingsRow: View {
             }
         }
         .opacity(0.6) // Disabled appearance for "coming soon"
+        .disabled(true)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title) - Coming Soon")
+        .accessibilityHint("This setting will be available in a future update")
     }
 }
 

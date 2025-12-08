@@ -1,10 +1,3 @@
-//
-//  AboutView.swift
-//  WristBop
-//
-//  Created by Claude on 2025-12-08.
-//
-
 import SwiftUI
 import WristBopCore
 
@@ -23,7 +16,7 @@ struct AboutView: View {
                         .font(.largeTitle)
                         .fontWeight(.bold)
 
-                    Text("Version 1.0")
+                    Text("Version \(Theme.appVersion)")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -149,7 +142,7 @@ struct AboutView: View {
 }
 
 /// Gesture instruction row
-struct GestureInstruction: View {
+private struct GestureInstruction: View {
     let gesture: GestureType
     let description: String
 
@@ -176,7 +169,7 @@ struct GestureInstruction: View {
 }
 
 /// Info row with icon
-struct InfoRow: View {
+private struct InfoRow: View {
     let icon: String
     let text: String
 

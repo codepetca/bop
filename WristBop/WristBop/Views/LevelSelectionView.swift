@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import WristBopCore
 
 /// Placeholder view for future level selection feature
 /// Will allow users to choose difficulty modes and custom challenges
@@ -73,7 +72,7 @@ struct LevelSelectionView: View {
 }
 
 /// Preview card for a level/mode
-struct LevelCard: View {
+private struct LevelCard: View {
     let title: String
     let description: String
     let icon: String
@@ -111,6 +110,10 @@ struct LevelCard: View {
                 .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
         )
         .opacity(0.6) // Disabled appearance for "coming soon"
+        .disabled(true)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title) - Coming Soon")
+        .accessibilityHint("This feature will be available in a future update")
     }
 }
 

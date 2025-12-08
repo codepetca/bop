@@ -11,9 +11,7 @@ import WristBopCore
 /// Main home screen for the iOS companion app
 /// Displays high score and navigation to future features
 struct HomeView: View {
-    @State private var highScore: Int = 0
-
-    private let highScoreStore = UserDefaultsHighScoreStore()
+    @AppStorage(GameConstants.highScoreKey) private var highScore: Int = 0
 
     var body: some View {
         NavigationStack {
@@ -128,18 +126,11 @@ struct HomeView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
         }
-        .onAppear {
-            loadHighScore()
-        }
-    }
-
-    private func loadHighScore() {
-        highScore = highScoreStore.loadHighScore()
     }
 }
 
 /// Reusable feature row component for navigation items
-struct FeatureRow: View {
+private struct FeatureRow: View {
     let icon: String
     let title: String
     let subtitle: String

@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import WristBopCore
 
 /// Placeholder view for future stats and leaderboards feature
 /// Will display personal stats, achievements, and Game Center leaderboards
@@ -98,7 +97,7 @@ struct StatsView: View {
 }
 
 /// Preview card for a stat
-struct StatCard: View {
+private struct StatCard: View {
     let icon: String
     let title: String
     let value: String
@@ -133,11 +132,15 @@ struct StatCard: View {
                 .fill(Color(uiColor: .systemBackground))
         )
         .opacity(0.6) // Disabled appearance for "coming soon"
+        .disabled(true)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title) - Coming Soon")
+        .accessibilityHint("This feature will be available in a future update")
     }
 }
 
 /// Preview row for leaderboard entry
-struct LeaderboardRow: View {
+private struct LeaderboardRow: View {
     let rank: String
     let name: String
     let score: String
@@ -165,6 +168,10 @@ struct LeaderboardRow: View {
                 .fill(Color(uiColor: .systemBackground))
         )
         .opacity(0.6) // Disabled appearance for "coming soon"
+        .disabled(true)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Leaderboard rank \(rank) - Coming Soon")
+        .accessibilityHint("This feature will be available in a future update")
     }
 }
 

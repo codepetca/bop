@@ -33,6 +33,15 @@ struct WristBopTests {
     @Test func testHighScoreStore() async throws {
         // Verify HighScoreStore functionality
         let store = UserDefaultsHighScoreStore()
+        let originalScore = store.loadHighScore()
+
+        defer {
+            if originalScore > 0 {
+                store.saveHighScore(originalScore)
+            } else {
+                UserDefaults.standard.removeObject(forKey: GameConstants.highScoreKey)
+            }
+        }
 
         // Save a test score
         store.saveHighScore(42)
@@ -40,9 +49,6 @@ struct WristBopTests {
         // Verify it was saved
         let loadedScore = store.loadHighScore()
         #expect(loadedScore == 42)
-
-        // Clean up
-        store.saveHighScore(0)
     }
 
     @Test func testGestureTypeDisplayNames() async throws {
