@@ -24,6 +24,11 @@ protocol GestureDetecting: AnyObject {
 
     /// Testing hook to inject motion samples for deterministic testing
     func injectSample(_ sample: MotionSample)
+
+#if DEBUG_OVERLAY
+    /// Receives debug updates for telemetry overlay
+    var debugUpdateHandler: ((GestureDebugInfo) -> Void)? { get set }
+#endif
 }
 
 protocol MotionManagerProtocol: AnyObject {
@@ -48,6 +53,17 @@ struct MotionSample {
     let timestamp: TimeInterval
 }
 
+#if DEBUG_OVERLAY
+struct GestureDebugInfo {
+    let acceleration: CMAcceleration
+    let rotationRate: CMRotationRate
+    let crownAccumulatedDelta: Double
+    let timestamp: TimeInterval
+    let activeCommand: GestureType?
+    let hasEmittedForCommand: Bool
+}
+#endif
+
 final class GestureDetector: NSObject, GestureDetecting {
     weak var delegate: GestureDetectorDelegate?
 
@@ -60,6 +76,9 @@ final class GestureDetector: NSObject, GestureDetecting {
     private var samples: [MotionSample] = []
     private var shakePeaks: [TimeInterval] = []
     private var accumulatedCrownDelta: Double = 0
+#if DEBUG_OVERLAY
+    var debugUpdateHandler: ((GestureDebugInfo) -> Void)?
+#endif
 
     init(
         motionManager: MotionManagerProtocol = CoreMotionManager(),
@@ -141,12 +160,36 @@ final class GestureDetector: NSObject, GestureDetecting {
             // Crown-driven; motion samples are ignored for this command.
             break
         }
+
+#if DEBUG_OVERLAY
+        publishDebugInfo(from: sample)
+#endif
     }
 
     private func trimSamples(olderThan cutoff: TimeInterval) {
         samples.removeAll { $0.timestamp < cutoff }
         shakePeaks.removeAll { $0 < cutoff }
     }
+
+#if DEBUG_OVERLAY
+    private func publishDebugInfo(from sample: MotionSample) {
+        guard let handler = debugUpdateHandler else { return }
+
+        let info = GestureDebugInfo(
+            acceleration: sample.userAcceleration,
+            rotationRate: sample.rotationRate,
+            crownAccumulatedDelta: accumulatedCrownDelta,
+            timestamp: sample.timestamp,
+            activeCommand: activeCommand,
+            hasEmittedForCommand: hasEmittedForCommand
+        )
+
+        DispatchQueue.main.async { [weak self] in
+            guard self != nil else { return }
+            handler(info)
+        }
+    }
+#endif
 
     // MARK: - Detection strategies
 
@@ -191,6 +234,10 @@ extension GestureDetector: WKCrownDelegate {
         if accumulatedCrownDelta >= GestureDetectorConstants.crownDeltaThreshold {
             emitDetection(for: .spinCrown)
         }
+
+#if DEBUG_OVERLAY
+        publishCrownDebugUpdate()
+#endif
     }
 }
 
@@ -246,3 +293,32 @@ enum CrownSequencerProvider {
         return WatchCrownSequencer(sequencer: sequencer)
     }
 }
+
+#if DEBUG_OVERLAY
+private extension GestureDetector {
+    func publishCrownDebugUpdate() {
+        guard let handler = debugUpdateHandler else { return }
+
+        let fallbackSample = MotionSample(
+            userAcceleration: CMAcceleration(x: 0, y: 0, z: 0),
+            rotationRate: CMRotationRate(x: 0, y: 0, z: 0),
+            timestamp: Date().timeIntervalSince1970
+        )
+        let sample = samples.last ?? fallbackSample
+
+        let info = GestureDebugInfo(
+            acceleration: sample.userAcceleration,
+            rotationRate: sample.rotationRate,
+            crownAccumulatedDelta: accumulatedCrownDelta,
+            timestamp: sample.timestamp,
+            activeCommand: activeCommand,
+            hasEmittedForCommand: hasEmittedForCommand
+        )
+
+        DispatchQueue.main.async { [weak self] in
+            guard self != nil else { return }
+            handler(info)
+        }
+    }
+}
+#endif
