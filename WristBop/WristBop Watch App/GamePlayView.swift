@@ -13,29 +13,10 @@ struct GamePlayView: View {
 
     var body: some View {
         ZStack {
-            // Full-screen circular timer at edge
-            GeometryReader { geometry in
-                ZStack {
-                    // Background circle at edge
-                    Circle()
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 6)
-                        .frame(width: geometry.size.width - 10, height: geometry.size.height - 10)
-                        .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
-
-                    // Animated timer ring at edge
-                    Circle()
-                        .trim(from: 0, to: viewModel.timeRemaining / viewModel.maxTimeForCurrentCommand)
-                        .stroke(
-                            viewModel.timeRemaining < 0.5 ? Color.red : Color.blue,
-                            style: StrokeStyle(lineWidth: 6, lineCap: .round)
-                        )
-                        .frame(width: geometry.size.width - 10, height: geometry.size.height - 10)
-                        .rotationEffect(.degrees(-90))
-                        .animation(.linear(duration: 0.05), value: viewModel.timeRemaining)
-                        .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
-                }
-            }
-            .ignoresSafeArea()
+            PerimeterProgressRing(
+                progress: perimeterProgress,
+                ringColor: timerRingColor
+            )
 
             // Content in center
             VStack(spacing: 12) {
@@ -76,7 +57,16 @@ struct GamePlayView: View {
         }
     }
 
-    // MARK: - Helper Views
+    // MARK: - Progress & Helper Views
+
+    private var perimeterProgress: Double {
+        guard viewModel.maxTimeForCurrentCommand > 0 else { return 0 }
+        return viewModel.timeRemaining / viewModel.maxTimeForCurrentCommand
+    }
+
+    private var timerRingColor: Color {
+        viewModel.timeRemaining < 0.5 ? .red : .blue
+    }
 
     private func gestureButton(for gesture: GestureType) -> some View {
         Button(action: {
