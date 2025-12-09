@@ -68,7 +68,7 @@ The project follows standard Swift Package conventions with clean separation bet
    - `GameConstants.swift`: Centralized tuning constants for difficulty curve
 
 2. **Supporting Systems**
-   - `CommandRandomizer.swift`: Protocol + `SystemCommandRandomizer` for generating non-repeating random commands
+   - `CommandRandomizer.swift`: Protocol + `SystemCommandRandomizer` for generating random commands (repeats allowed)
    - `HighScoreStore.swift`: Protocol + `UserDefaultsHighScoreStore` for persistence
 
 **Tests Location**: `Tests/WristBopCoreTests/`
@@ -147,7 +147,7 @@ This project follows a **TDD-first approach**:
 ## Important Architectural Constraints
 
 1. **Timeout-only failure**: Wrong gestures are silently ignored; only timing out ends the game
-2. **Non-repeating commands**: `CommandRandomizer` must exclude the previous command
+2. **Command randomness**: `CommandRandomizer` may consider the previous command but should choose uniformly across all gestures and allow repeats
 3. **Speed-up feedback**: `didTriggerSpeedUpCue` flag signals when haptic/sound cue should play (only when time actually decreases, not when at minimum)
 4. **Protocol injection**: Never hardcode concrete types in `GameEngine`; use protocol parameters for testability
 5. **Debug overlay**: Must be opt-in via compile-time flag, never shipped in release builds

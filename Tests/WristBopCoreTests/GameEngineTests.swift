@@ -218,22 +218,20 @@ struct GameEngineTests {
         #expect(store.loadHighScore() == 10)
     }
 
-    @Test("Next command excludes previous command")
-    func testNextCommandExcludesPrevious() {
-        let randomizer = SystemCommandRandomizer()
+    @Test("Next command can repeat previous command")
+    func testNextCommandCanRepeatPrevious() {
+        let randomizer = FixedCommandRandomizer(command: .shake)
         let store = InMemoryHighScoreStore()
         let engine = GameEngine(commandRandomizer: randomizer, highScoreStore: store)
 
         engine.startGame()
+        let firstCommand = engine.state.currentCommand!
+        #expect(firstCommand == .shake)
 
-        // Generate multiple commands and ensure they don't repeat
-        var previousCommand = engine.state.currentCommand!
+        // Repeating the same gesture should still advance the game and set the same command again
+        engine.handleGestureMatch(firstCommand)
+        let secondCommand = engine.state.currentCommand!
 
-        for _ in 0..<10 {
-            engine.handleGestureMatch(previousCommand)
-            let newCommand = engine.state.currentCommand!
-            #expect(newCommand != previousCommand)
-            previousCommand = newCommand
-        }
+        #expect(secondCommand == firstCommand)
     }
 }

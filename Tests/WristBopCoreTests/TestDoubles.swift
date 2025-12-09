@@ -23,13 +23,26 @@ final class SequenceCommandRandomizer: CommandRandomizer, @unchecked Sendable {
         self.sequence = sequence
     }
 
-    func nextCommand(excluding: GestureType?) -> GestureType {
+    func nextCommand(previous _: GestureType?) -> GestureType {
         guard !sequence.isEmpty else {
             return .shake
         }
 
         let command = sequence[currentIndex % sequence.count]
         currentIndex += 1
+        return command
+    }
+}
+
+/// Command randomizer that always returns the same command (useful for repeat checks)
+final class FixedCommandRandomizer: CommandRandomizer, @unchecked Sendable {
+    private let command: GestureType
+
+    init(command: GestureType) {
+        self.command = command
+    }
+
+    func nextCommand(previous _: GestureType?) -> GestureType {
         return command
     }
 }
