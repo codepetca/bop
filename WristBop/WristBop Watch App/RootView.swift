@@ -15,7 +15,7 @@ struct RootView: View {
 #endif
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
+        ZStack(alignment: .bottomTrailing) {
             mainContent
 #if DEBUG_OVERLAY
             debugOverlayToggle
