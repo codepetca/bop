@@ -10,7 +10,6 @@ struct DebugOverlayView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             header
-            statusRow
             telemetry
             manualControls
         }
@@ -20,9 +19,13 @@ struct DebugOverlayView: View {
     }
 
     private var header: some View {
+        let debug = viewModel.debugOverlayState
+        let tint: Color = debug.detectorActive ? .green : .red
+
         HStack(spacing: 8) {
-            Label("Debug", systemImage: "ladybug.fill")
+            Image(systemName: debug.detectorActive ? "dot.radiowaves.right" : "wave.3.right")
                 .font(.headline)
+                .foregroundStyle(tint)
             Spacer()
             Button(action: onClose) {
                 Image(systemName: "xmark.circle.fill")
@@ -30,33 +33,6 @@ struct DebugOverlayView: View {
             }
             .buttonStyle(.plain)
         }
-    }
-
-    private var statusRow: some View {
-        let debug = viewModel.debugOverlayState
-
-        return HStack(spacing: 6) {
-            statusChip(
-                icon: Image(systemName: debug.detectorActive ? "dot.radiowaves.right" : "wave.3.right"),
-                label: "Detector",
-                tint: debug.detectorActive ? .green : .red
-            )
-        }
-    }
-
-    private func statusChip(icon: Image, label: String, tint: Color) -> some View {
-        HStack(spacing: 4) {
-            icon
-                .font(.caption)
-            Text(label)
-                .font(.caption2)
-                .lineLimit(1)
-        }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 5)
-        .background(tint.opacity(0.15))
-        .foregroundStyle(tint)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private var telemetry: some View {

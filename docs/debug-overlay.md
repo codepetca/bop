@@ -24,7 +24,7 @@
 
 ## Layout (compact, no scrolling)
 
-- Detector state renders as a small chip (green/red) so it stays visible without scrolling.
+- Detector state renders as a small green/red icon in the header so it stays visible without scrolling.
 - Accelerometer, gyro, and crown delta live on a single condensed row with monospaced values to minimize height.
 - Manual triggers stay in a 2x2 grid (text-only) with at least 44pt tap targets and remain visible alongside telemetry on 41mm and 45mm watches (no scrolling). The last detected gesture is outlined on its trigger button.
 - Placeholder values render when telemetry is unavailable so the layout height stays stable while the overlay is open.
