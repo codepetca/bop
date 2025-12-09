@@ -209,6 +209,144 @@ struct GameViewModelTests {
         let successCountAfter = haptics.playedEvents.filter { $0 == .success }.count
         #expect(successCountAfter == successCountBefore)
     }
+
+    @Test("Countdown timer updates progress correctly")
+    func testCountdownTimerUpdatesProgress() {
+        let detector = FakeDetector()
+        let timers = FakeTimerScheduler()
+        let haptics = FakeHaptics()
+        let sounds = FakeSounds()
+        let viewModel = GameViewModel(
+            haptics: haptics,
+            sounds: sounds,
+            detector: detector,
+            timerScheduler: timers,
+            skipCountdown: false // KEY: Don't skip countdown
+        )
+
+        viewModel.startGame()
+
+        // Verify countdown timer started
+        #expect(viewModel.showingCountdown == true)
+        #expect(timers.startedWithDuration == 3.0)
+        #expect(timers.lastTickInterval == 0.05)
+
+        // Simulate countdown ticks
+        timers.tick(2.5)
+        #expect(viewModel.countdownTimeRemaining == 2.5)
+
+        timers.tick(1.0)
+        #expect(viewModel.countdownTimeRemaining == 1.0)
+
+        timers.tick(0.1)
+        #expect(viewModel.countdownTimeRemaining == 0.1)
+    }
+
+    @Test("Countdown timeout triggers game start sequence")
+    func testCountdownCompletionTriggersGameStart() {
+        let detector = FakeDetector()
+        let timers = FakeTimerScheduler()
+        let haptics = FakeHaptics()
+        let sounds = FakeSounds()
+        let viewModel = GameViewModel(
+            haptics: haptics,
+            sounds: sounds,
+            detector: detector,
+            timerScheduler: timers,
+            skipCountdown: false
+        )
+
+        viewModel.startGame()
+        #expect(viewModel.showingCountdown == true)
+        #expect(viewModel.showingGo == false)
+
+        // Trigger timeout (countdown complete)
+        timers.triggerTimeout()
+
+        // Verify GO message is shown
+        #expect(viewModel.showingGo == true)
+        #expect(viewModel.showingCountdown == true) // Still showing until GO completes
+    }
+
+    @Test("Countdown can be cancelled")
+    func testCountdownCancellation() {
+        let detector = FakeDetector()
+        let timers = FakeTimerScheduler()
+        let haptics = FakeHaptics()
+        let sounds = FakeSounds()
+        let viewModel = GameViewModel(
+            haptics: haptics,
+            sounds: sounds,
+            detector: detector,
+            timerScheduler: timers,
+            skipCountdown: false
+        )
+
+        viewModel.startGame()
+        #expect(viewModel.showingCountdown == true)
+        #expect(timers.startedCount == 1)
+
+        // End game during countdown
+        viewModel.endGame()
+
+        // Verify timer was cancelled
+        #expect(timers.cancelledCount == 1)
+    }
+
+    @Test("Game timer reuses scheduler after countdown")
+    func testTimerReuseAfterCountdown() {
+        let detector = FakeDetector()
+        let timers = FakeTimerScheduler()
+        let haptics = FakeHaptics()
+        let sounds = FakeSounds()
+        let viewModel = GameViewModel(
+            haptics: haptics,
+            sounds: sounds,
+            detector: detector,
+            timerScheduler: timers,
+            skipCountdown: true
+        )
+
+        // Start game with skip countdown (uses game timer directly)
+        viewModel.startGame()
+        #expect(timers.startedCount == 1)
+        #expect(timers.startedWithDuration == GameConstants.initialTimePerCommand)
+
+        // Simulate correct gesture to restart timer
+        if let command = viewModel.currentCommand {
+            viewModel.handleGesture(command)
+        }
+
+        // Verify timer was restarted properly (cancelled then started again)
+        #expect(timers.cancelledCount == 1)
+        #expect(timers.startedCount == 2)
+    }
+
+    @Test("Skip countdown flag bypasses countdown timer")
+    func testSkipCountdownBypassesTimer() {
+        let detector = FakeDetector()
+        let timers = FakeTimerScheduler()
+        let haptics = FakeHaptics()
+        let sounds = FakeSounds()
+        let viewModel = GameViewModel(
+            haptics: haptics,
+            sounds: sounds,
+            detector: detector,
+            timerScheduler: timers,
+            skipCountdown: true
+        )
+
+        viewModel.startGame()
+
+        // Verify no countdown shown
+        #expect(viewModel.showingCountdown == false)
+        #expect(viewModel.showingGo == false)
+
+        // Verify game started immediately with game timer
+        #expect(viewModel.isPlaying == true)
+        #expect(detector.started == true)
+        #expect(timers.startedWithDuration == GameConstants.initialTimePerCommand)
+    }
 }
 
 // MARK: - Fakes
