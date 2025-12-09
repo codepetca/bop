@@ -6,7 +6,8 @@ Read this before coding. Keeps the watchOS MVP consistent, small, and testable.
 1) `architecture.md` (game plan, gestures, difficulty curve)  
 2) `TODO.md` (current task list)  
 3) `docs/tests.md` (TDD priorities and flow)  
-4) Any active issue doc (if/when added)
+4) `docs/issue-worker.md` when working on GitHub issues  
+5) Any active issue doc (if/when added)
 
 ## Platform & Constraints (watchOS 10)
 - SwiftUI only; no storyboards, no UIKit, no Combine unless bridging legacy APIs.
