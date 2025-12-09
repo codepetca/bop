@@ -25,6 +25,6 @@
 ## Layout (compact, no scrolling)
 
 - Detector state, active command, and last detection render as small chips with SF Symbols so they fit on-screen together.
-- Accelerometer and gyro values are condensed into abbreviated, monospaced lines with a separate crown delta row to stay legible without taking extra height.
-- Manual triggers stay in a 2x2 grid with at least 44pt tap targets and remain visible alongside telemetry on 41mm and 45mm watches (no scrolling).
+- Accelerometer, gyro, and crown delta live on a single condensed row with monospaced values to minimize height.
+- Manual triggers stay in a 2x2 grid (text-only) with at least 44pt tap targets and remain visible alongside telemetry on 41mm and 45mm watches (no scrolling).
 - Placeholder values render when telemetry is unavailable so the layout height stays stable while the overlay is open.

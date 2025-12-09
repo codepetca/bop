@@ -14,7 +14,7 @@ struct DebugOverlayView: View {
             telemetry
             manualControls
         }
-        .padding(10)
+        .padding(8)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
@@ -64,8 +64,8 @@ struct DebugOverlayView: View {
                 .font(.caption2)
                 .lineLimit(1)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 5)
         .background(tint.opacity(0.15))
         .foregroundStyle(tint)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -74,18 +74,15 @@ struct DebugOverlayView: View {
     private var telemetry: some View {
         let debug = viewModel.debugOverlayState
 
-        return VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 8) {
-                telemetryGroup(
-                    label: "A",
-                    values: debug.acceleration.map { ($0.x, $0.y, $0.z) }
-                )
-                telemetryGroup(
-                    label: "G",
-                    values: debug.rotationRate.map { ($0.x, $0.y, $0.z) }
-                )
-            }
-
+        return HStack(spacing: 6) {
+            telemetryGroup(
+                label: "A",
+                values: debug.acceleration.map { ($0.x, $0.y, $0.z) }
+            )
+            telemetryGroup(
+                label: "G",
+                values: debug.rotationRate.map { ($0.x, $0.y, $0.z) }
+            )
             telemetryGroup(
                 label: "Cr",
                 values: (debug.crownAccumulatedDelta, nil, nil)
@@ -106,8 +103,8 @@ struct DebugOverlayView: View {
                     .foregroundColor(.secondary)
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
         .background(.thinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
@@ -126,17 +123,11 @@ struct DebugOverlayView: View {
     private var manualControls: some View {
         let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 2)
 
-        return VStack(alignment: .leading, spacing: 4) {
-            Text("Manual triggers")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            LazyVGrid(columns: columns, spacing: 6) {
-                debugButton(for: .shake)
-                debugButton(for: .flickUp)
-                debugButton(for: .twist)
-                debugButton(for: .spinCrown)
-            }
+        return LazyVGrid(columns: columns, spacing: 6) {
+            debugButton(for: .shake)
+            debugButton(for: .flickUp)
+            debugButton(for: .twist)
+            debugButton(for: .spinCrown)
         }
     }
 
@@ -144,15 +135,9 @@ struct DebugOverlayView: View {
         Button {
             viewModel.handleGesture(gesture)
         } label: {
-            VStack(spacing: 4) {
-                debugIcon(for: gesture)
-                    .font(.headline)
-                Text(shortName(for: gesture))
-                    .font(.caption2)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .padding(.vertical, 4)
+            Text(shortName(for: gesture))
+                .font(.footnote)
+                .frame(maxWidth: .infinity, minHeight: 44)
         }
         .buttonStyle(.bordered)
         .tint(viewModel.currentCommand == gesture ? .green : .gray)
