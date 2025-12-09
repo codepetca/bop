@@ -210,8 +210,8 @@ struct GameViewModelTests {
         #expect(successCountAfter == successCountBefore)
     }
 
-    @Test("Countdown timer updates progress correctly")
-    func testCountdownTimerUpdatesProgress() {
+    @Test("Countdown shows 3-2-1 then starts the game")
+    func testCountdownSequenceStartsGame() async throws {
         let detector = FakeDetector()
         let timers = FakeTimerScheduler()
         let haptics = FakeHaptics()
@@ -221,55 +221,33 @@ struct GameViewModelTests {
             sounds: sounds,
             detector: detector,
             timerScheduler: timers,
-            skipCountdown: false // KEY: Don't skip countdown
+            skipCountdown: false,
+            countdownStepDuration: 10_000 // Fast countdown for testing
         )
 
         viewModel.startGame()
 
-        // Verify countdown timer started
+        // Countdown starts immediately with "3"
+        try await Task.sleep(nanoseconds: 1_000)
         #expect(viewModel.showingCountdown == true)
-        #expect(timers.startedWithDuration == 3.0)
-        #expect(timers.lastTickInterval == 0.05)
+        #expect(viewModel.countdownValue == 3)
+        #expect(timers.startedCount == 0) // game timer not yet started
 
-        // Simulate countdown ticks
-        timers.tick(2.5)
-        #expect(viewModel.countdownTimeRemaining == 2.5)
+        // Advance through countdown steps
+        try await Task.sleep(nanoseconds: 15_000)
+        #expect(viewModel.countdownValue == 2)
 
-        timers.tick(1.0)
-        #expect(viewModel.countdownTimeRemaining == 1.0)
+        try await Task.sleep(nanoseconds: 15_000)
+        #expect(viewModel.countdownValue == 1)
 
-        timers.tick(0.1)
-        #expect(viewModel.countdownTimeRemaining == 0.1)
-    }
-
-    @Test("Countdown timeout triggers game start sequence")
-    func testCountdownCompletionTriggersGameStart() {
-        let detector = FakeDetector()
-        let timers = FakeTimerScheduler()
-        let haptics = FakeHaptics()
-        let sounds = FakeSounds()
-        let viewModel = GameViewModel(
-            haptics: haptics,
-            sounds: sounds,
-            detector: detector,
-            timerScheduler: timers,
-            skipCountdown: false
-        )
-
-        viewModel.startGame()
-        #expect(viewModel.showingCountdown == true)
-        #expect(viewModel.showingGo == false)
-
-        // Trigger timeout (countdown complete)
-        timers.triggerTimeout()
-
-        // Verify GO message is shown
-        #expect(viewModel.showingGo == true)
-        #expect(viewModel.showingCountdown == true) // Still showing until GO completes
+        try await Task.sleep(nanoseconds: 15_000)
+        #expect(viewModel.showingCountdown == false)
+        #expect(viewModel.isPlaying == true)
+        #expect(timers.startedWithDuration == GameConstants.initialTimePerCommand)
     }
 
     @Test("Countdown can be cancelled")
-    func testCountdownCancellation() {
+    func testCountdownCancellation() async throws {
         let detector = FakeDetector()
         let timers = FakeTimerScheduler()
         let haptics = FakeHaptics()
@@ -279,18 +257,21 @@ struct GameViewModelTests {
             sounds: sounds,
             detector: detector,
             timerScheduler: timers,
-            skipCountdown: false
+            skipCountdown: false,
+            countdownStepDuration: 50_000
         )
 
         viewModel.startGame()
         #expect(viewModel.showingCountdown == true)
-        #expect(timers.startedCount == 1)
 
         // End game during countdown
         viewModel.endGame()
 
         // Verify timer was cancelled
-        #expect(timers.cancelledCount == 1)
+        #expect(timers.cancelledCount == 0) // game timer never started
+        #expect(viewModel.showingCountdown == false)
+        #expect(viewModel.countdownValue == nil)
+        #expect(viewModel.isPlaying == false)
     }
 
     @Test("Game timer reuses scheduler after countdown")
@@ -340,7 +321,7 @@ struct GameViewModelTests {
 
         // Verify no countdown shown
         #expect(viewModel.showingCountdown == false)
-        #expect(viewModel.showingGo == false)
+        #expect(viewModel.countdownValue == nil)
 
         // Verify game started immediately with game timer
         #expect(viewModel.isPlaying == true)

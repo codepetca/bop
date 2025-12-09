@@ -36,8 +36,7 @@ class GameViewModel: ObservableObject {
     @Published var showingSpeedUpMessage: Bool = false
     @Published var canTapToSkipGameOver: Bool = false
     @Published var showingCountdown: Bool = false
-    @Published var countdownTimeRemaining: TimeInterval = 0
-    @Published var showingGo: Bool = false
+    @Published var countdownValue: Int?
 #if DEBUG_OVERLAY
     @Published var debugOverlayState = DebugOverlayState()
 #endif
@@ -50,10 +49,11 @@ class GameViewModel: ObservableObject {
     private let timerScheduler: TimerScheduling
     private let tickInterval: TimeInterval
     private let speedUpMessageDuration: UInt64
+    private let countdownStepDuration: UInt64
 
     // Task management for async operations
     private var speedUpTask: Task<Void, Never>?
-    private var countdownGoTask: Task<Void, Never>?
+    private var countdownTask: Task<Void, Never>?
     private var gameOverSkipTask: Task<Void, Never>?
     private var gameOverAutoReturnTask: Task<Void, Never>?
 
@@ -66,6 +66,7 @@ class GameViewModel: ObservableObject {
         highScoreStore: HighScoreStore = UserDefaultsHighScoreStore(),
         tickInterval: TimeInterval = 0.05,
         speedUpMessageDuration: UInt64 = 2_000_000_000,
+        countdownStepDuration: UInt64 = 1_000_000_000,
         skipCountdown: Bool = false
     ) {
         self.engine = GameEngine(
@@ -80,6 +81,7 @@ class GameViewModel: ObservableObject {
         self.highScore = engine.state.highScore
         self.lastScore = UserDefaults.standard.integer(forKey: "WristBopLastScore")
         self.speedUpMessageDuration = speedUpMessageDuration
+        self.countdownStepDuration = countdownStepDuration
         self.shouldSkipCountdown = skipCountdown
 
         // Set detector delegate once - it never changes during the view model's lifetime
@@ -137,7 +139,6 @@ class GameViewModel: ObservableObject {
 
     func resetGame() {
         resetTransientUIState()
-        stopCountdownTimer()
         stopTimer()
         detector.stop()
 #if DEBUG_OVERLAY
@@ -158,8 +159,7 @@ class GameViewModel: ObservableObject {
         // Cancel any pending tasks before ending
         speedUpTask?.cancel()
         speedUpTask = nil
-        countdownGoTask?.cancel()
-        countdownGoTask = nil
+        cancelCountdown()
 
         stopTimer()
         detector.stop()
@@ -290,40 +290,42 @@ class GameViewModel: ObservableObject {
     // MARK: - Countdown Management
 
     private func startCountdown() {
-        stopCountdownTimer()
+        cancelCountdown()
         showingCountdown = true
-        showingGo = false
-        countdownTimeRemaining = 3.0
+        countdownTask = Task { [weak self] in
+            guard let self else { return }
 
-        timerScheduler.start(
-            duration: 3.0,
-            tickInterval: tickInterval,
-            onTick: { [weak self] remaining in
-                self?.countdownTimeRemaining = remaining
-            },
-            onTimeout: { [weak self] in
-                self?.handleCountdownComplete()
+            for value in stride(from: 3, through: 1, by: -1) {
+                if Task.isCancelled { return }
+                await MainActor.run {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        self.countdownValue = value
+                    }
+                }
+
+                do {
+                    try await Task.sleep(nanoseconds: countdownStepDuration)
+                } catch {
+                    return
+                }
             }
-        )
-    }
 
-    private func stopCountdownTimer() {
-        timerScheduler.cancel()
-    }
+            if Task.isCancelled { return }
 
-    private func handleCountdownComplete() {
-        stopCountdownTimer()
-        showingGo = true
-
-        // Show "GO!" for 0.5 seconds, then start game
-        countdownGoTask = Task {
-            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
             await MainActor.run {
+                self.countdownTask = nil
                 self.showingCountdown = false
-                self.showingGo = false
+                self.countdownValue = nil
                 self.actuallyStartGame()
             }
         }
+    }
+
+    private func cancelCountdown() {
+        countdownTask?.cancel()
+        countdownTask = nil
+        showingCountdown = false
+        countdownValue = nil
     }
 
     private func showSpeedUpMessage() {
@@ -370,8 +372,7 @@ class GameViewModel: ObservableObject {
         // Cancel all pending async tasks
         speedUpTask?.cancel()
         speedUpTask = nil
-        countdownGoTask?.cancel()
-        countdownGoTask = nil
+        cancelCountdown()
         gameOverSkipTask?.cancel()
         gameOverSkipTask = nil
         gameOverAutoReturnTask?.cancel()
@@ -379,7 +380,6 @@ class GameViewModel: ObservableObject {
 
         showingSpeedUpMessage = false
         showingCountdown = false
-        showingGo = false
         canTapToSkipGameOver = false
         didSpeedUp = false
         isGameOver = false
@@ -397,7 +397,7 @@ class GameViewModel: ObservableObject {
 
         // Cancel all pending tasks
         speedUpTask?.cancel()
-        countdownGoTask?.cancel()
+        countdownTask?.cancel()
         gameOverSkipTask?.cancel()
         gameOverAutoReturnTask?.cancel()
     }
