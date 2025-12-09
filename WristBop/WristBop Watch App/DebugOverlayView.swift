@@ -22,7 +22,7 @@ struct DebugOverlayView: View {
         let debug = viewModel.debugOverlayState
         let tint: Color = debug.detectorActive ? .green : .red
 
-        HStack(spacing: 8) {
+        return HStack(spacing: 8) {
             Image(systemName: debug.detectorActive ? "dot.radiowaves.right" : "wave.3.right")
                 .font(.headline)
                 .foregroundStyle(tint)
