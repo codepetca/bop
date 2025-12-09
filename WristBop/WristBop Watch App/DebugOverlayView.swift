@@ -36,22 +36,10 @@ struct DebugOverlayView: View {
         let debug = viewModel.debugOverlayState
 
         return HStack(spacing: 6) {
-            let commandTint: Color = debug.activeCommand == nil ? .secondary : .blue
-
             statusChip(
                 icon: Image(systemName: debug.detectorActive ? "dot.radiowaves.right" : "wave.3.right"),
-                label: debug.detectorActive ? "Det On" : "Det Off",
-                tint: debug.detectorActive ? .green : .secondary
-            )
-            statusChip(
-                icon: debugIcon(for: debug.activeCommand ?? .shake, monochrome: true),
-                label: debug.activeCommand.map(shortName) ?? "Cmd —",
-                tint: commandTint
-            )
-            statusChip(
-                icon: Image(systemName: "checkmark.circle"),
-                label: debug.lastDetectedGesture.map(shortName) ?? "Last —",
-                tint: debug.lastDetectedGesture == nil ? .secondary : .green
+                label: "Detector",
+                tint: debug.detectorActive ? .green : .red
             )
         }
     }
@@ -122,16 +110,17 @@ struct DebugOverlayView: View {
 
     private var manualControls: some View {
         let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 2)
+        let lastDetected = viewModel.debugOverlayState.lastDetectedGesture
 
         return LazyVGrid(columns: columns, spacing: 6) {
-            debugButton(for: .shake)
-            debugButton(for: .flickUp)
-            debugButton(for: .twist)
-            debugButton(for: .spinCrown)
+            debugButton(for: .shake, lastDetected: lastDetected)
+            debugButton(for: .flickUp, lastDetected: lastDetected)
+            debugButton(for: .twist, lastDetected: lastDetected)
+            debugButton(for: .spinCrown, lastDetected: lastDetected)
         }
     }
 
-    private func debugButton(for gesture: GestureType) -> some View {
+    private func debugButton(for gesture: GestureType, lastDetected: GestureType?) -> some View {
         Button {
             viewModel.handleGesture(gesture)
         } label: {
@@ -141,6 +130,10 @@ struct DebugOverlayView: View {
         }
         .buttonStyle(.bordered)
         .tint(viewModel.currentCommand == gesture ? .green : .gray)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(lastDetected == gesture ? Color.blue : .clear, lineWidth: 2)
+        )
     }
 
     private func debugIcon(for gesture: GestureType, monochrome: Bool = false) -> Image {
