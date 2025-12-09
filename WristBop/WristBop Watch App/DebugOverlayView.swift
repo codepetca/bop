@@ -10,25 +10,24 @@ struct DebugOverlayView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             header
-            Divider()
             telemetry
-            Divider()
             manualControls
         }
-        .padding(12)
+        .padding(8)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Debug Overlay")
-                    .font(.headline)
-                Text("Dev-only — hidden in Release")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
+        let debug = viewModel.debugOverlayState
+        let tint: Color = debug.detectorActive ? .green : .red
+
+        return HStack(spacing: 8) {
+            Image(systemName: "ladybug.fill")
+                .font(.headline)
+            Image(systemName: debug.detectorActive ? "dot.radiowaves.right" : "wave.3.right")
+                .font(.headline)
+                .foregroundStyle(tint)
             Spacer()
             Button(action: onClose) {
                 Image(systemName: "xmark.circle.fill")
@@ -41,79 +40,103 @@ struct DebugOverlayView: View {
     private var telemetry: some View {
         let debug = viewModel.debugOverlayState
 
-        return VStack(alignment: .leading, spacing: 4) {
-            Text("Detector: \(debug.detectorActive ? "On" : "Off")")
-                .font(.caption)
-            Text("Command: \(debug.activeCommand?.displayName ?? "None")")
-                .font(.caption)
-            if let last = debug.lastDetectedGesture {
-                Text("Last detection: \(last.displayName)")
-                    .font(.caption)
+        return HStack(spacing: 6) {
+            telemetryGroup(
+                label: "A",
+                values: debug.acceleration.map { ($0.x, $0.y, $0.z) }
+            )
+            telemetryGroup(
+                label: "G",
+                values: debug.rotationRate.map { ($0.x, $0.y, $0.z) }
+            )
+            telemetryGroup(
+                label: "Cr",
+                values: (debug.crownAccumulatedDelta, nil, nil)
+            )
+        }
+    }
+
+    private func telemetryGroup(label: String, values: (Double, Double?, Double?)?) -> some View {
+        HStack(spacing: 4) {
+            Text(label)
+                .font(.caption2.weight(.semibold))
+            if let values {
+                Text(compactValues(values))
+                    .font(.caption2.monospacedDigit())
             } else {
-                Text("Last detection: —")
-                    .font(.caption)
+                Text("—")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
             }
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(.thinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
 
-            if let acc = debug.acceleration {
-                Text(String(format: "Accel x: %.2f  y: %.2f  z: %.2f", acc.x, acc.y, acc.z))
-                    .font(.caption2.monospacedDigit())
-            }
-            if let rot = debug.rotationRate {
-                Text(String(format: "Gyro  x: %.2f  y: %.2f  z: %.2f", rot.x, rot.y, rot.z))
-                    .font(.caption2.monospacedDigit())
-            }
-
-            Text(String(format: "Crown Δ: %.2f", debug.crownAccumulatedDelta))
-                .font(.caption2.monospacedDigit())
+    private func compactValues(_ values: (Double, Double?, Double?)) -> String {
+        switch values {
+        case let (first, nil, nil):
+            return String(format: "%.2f", first)
+        case let (x, y?, z?):
+            return String(format: "%.1f %.1f %.1f", x, y, z)
+        default:
+            return "—"
         }
     }
 
     private var manualControls: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Manual triggers")
-                .font(.caption)
-                .foregroundColor(.secondary)
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 2)
+        let lastDetected = viewModel.debugOverlayState.lastDetectedGesture
 
-            VStack(spacing: 6) {
-                HStack(spacing: 6) {
-                    debugButton(for: .shake)
-                    debugButton(for: .flickUp)
-                }
-                HStack(spacing: 6) {
-                    debugButton(for: .twist)
-                    debugButton(for: .spinCrown)
-                }
-            }
+        return LazyVGrid(columns: columns, spacing: 6) {
+            debugButton(for: .shake, lastDetected: lastDetected)
+            debugButton(for: .flickUp, lastDetected: lastDetected)
+            debugButton(for: .twist, lastDetected: lastDetected)
+            debugButton(for: .spinCrown, lastDetected: lastDetected)
         }
     }
 
-    private func debugButton(for gesture: GestureType) -> some View {
+    private func debugButton(for gesture: GestureType, lastDetected: GestureType?) -> some View {
         Button {
             viewModel.handleGesture(gesture)
         } label: {
-            VStack(spacing: 4) {
-                debugIcon(for: gesture)
-                    .font(.caption)
-                Text(gesture.displayName.replacingOccurrences(of: " it!", with: ""))
-                    .font(.caption2)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(8)
+            Text(shortName(for: gesture))
+                .font(.footnote)
+                .frame(maxWidth: .infinity, minHeight: 44)
         }
         .buttonStyle(.bordered)
         .tint(viewModel.currentCommand == gesture ? .green : .gray)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(lastDetected == gesture ? Color.blue : .clear, lineWidth: 2)
+        )
     }
 
-    private func debugIcon(for gesture: GestureType) -> some View {
+    private func debugIcon(for gesture: GestureType, monochrome: Bool = false) -> Image {
         switch gesture {
         case .shake:
-            return Image(systemName: "iphone.radiowaves.left.and.right")
+            return Image(systemName: monochrome ? "iphone.radiowaves.left.and.right" : "iphone.radiowaves.left.and.right.circle")
         case .flickUp:
-            return Image(systemName: "arrow.up")
+            return Image(systemName: monochrome ? "arrow.up" : "arrow.up.circle")
         case .twist:
-            return Image(systemName: "arrow.clockwise")
+            return Image(systemName: monochrome ? "arrow.clockwise" : "arrow.clockwise.circle")
         case .spinCrown:
             return Image(systemName: "digitalcrown.horizontal.press")
+        }
+    }
+
+    private func shortName(for gesture: GestureType) -> String {
+        switch gesture {
+        case .shake:
+            return "Shake"
+        case .flickUp:
+            return "Flick"
+        case .twist:
+            return "Twist"
+        case .spinCrown:
+            return "Crown"
         }
     }
 }
