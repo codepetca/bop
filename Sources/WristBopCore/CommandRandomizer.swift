@@ -2,26 +2,17 @@ import Foundation
 
 /// Protocol for generating random gesture commands
 public protocol CommandRandomizer: Sendable {
-    /// Generates a random gesture command, excluding the previous command
-    /// - Parameter excluding: The previous command to exclude (optional)
-    /// - Returns: A random GestureType different from the excluded one
-    func nextCommand(excluding: GestureType?) -> GestureType
+    /// Generates a random gesture command.
+    /// - Parameter previous: The previously issued command (if any), provided for context.
+    func nextCommand(previous: GestureType?) -> GestureType
 }
 
 /// System implementation using SystemRandomNumberGenerator
 public struct SystemCommandRandomizer: CommandRandomizer {
     public init() {}
 
-    public func nextCommand(excluding: GestureType?) -> GestureType {
-        let allGestures = GestureType.allCases
-
-        guard let excluding = excluding else {
-            // No exclusion, return any random gesture
-            return allGestures.randomElement()!
-        }
-
-        // Filter out the excluded gesture
-        let available = allGestures.filter { $0 != excluding }
-        return available.randomElement()!
+    public func nextCommand(previous _: GestureType?) -> GestureType {
+        // Choose uniformly from all gestures; repeats are allowed.
+        return GestureType.allCases.randomElement()!
     }
 }

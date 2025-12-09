@@ -419,7 +419,7 @@ private final class SequenceCommandRandomizer: CommandRandomizer, @unchecked Sen
         self.sequence = sequence
     }
 
-    func nextCommand(excluding: GestureType?) -> GestureType {
+    func nextCommand(previous _: GestureType?) -> GestureType {
         guard !sequence.isEmpty else { return .shake }
         let command = sequence[currentIndex % sequence.count]
         currentIndex += 1

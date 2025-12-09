@@ -115,6 +115,6 @@ public final class GameEngine: GameEngineProtocol, @unchecked Sendable {
     }
 
     public func nextCommand() -> GestureType {
-        return commandRandomizer.nextCommand(excluding: _state.currentCommand)
+        return commandRandomizer.nextCommand(previous: _state.currentCommand)
     }
 }
