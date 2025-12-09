@@ -382,8 +382,8 @@ private final class FakeTimerScheduler: TimerScheduling {
     }
 
     func cancel() {
+        cancelledCount += 1  // Always increment to match real behavior
         if isRunning {
-            cancelledCount += 1
             isRunning = false
         }
     }
