@@ -57,10 +57,6 @@ class GameViewModel: ObservableObject {
     private var gameOverSkipTask: Task<Void, Never>?
     private var gameOverAutoReturnTask: Task<Void, Never>?
 
-    // Timer management
-    nonisolated(unsafe) private var countdownTimer: Timer?
-    private var countdownStartTime: Date?
-
     init(
         haptics: any HapticsPlaying,
         sounds: any SoundPlaying,
@@ -298,36 +294,21 @@ class GameViewModel: ObservableObject {
         showingCountdown = true
         showingGo = false
         countdownTimeRemaining = 3.0
-        countdownStartTime = Date()
 
-        // Start a timer that fires frequently to update countdown UI
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            Task { @MainActor [weak self] in
-                guard let self = self else { return }
-                self.updateCountdownTimer()
+        timerScheduler.start(
+            duration: 3.0,
+            tickInterval: tickInterval,
+            onTick: { [weak self] remaining in
+                self?.countdownTimeRemaining = remaining
+            },
+            onTimeout: { [weak self] in
+                self?.handleCountdownComplete()
             }
-        }
+        )
     }
 
     private func stopCountdownTimer() {
-        countdownTimer?.invalidate()
-        countdownTimer = nil
-        countdownStartTime = nil
-    }
-
-    private func updateCountdownTimer() {
-        guard let startTime = countdownStartTime else { return }
-
-        let elapsed = Date().timeIntervalSince(startTime)
-        let remaining = 3.0 - elapsed
-
-        if remaining <= 0 {
-            // Countdown complete - show "GO!" then start game
-            handleCountdownComplete()
-        } else {
-            countdownTimeRemaining = remaining
-        }
+        timerScheduler.cancel()
     }
 
     private func handleCountdownComplete() {
@@ -413,7 +394,6 @@ class GameViewModel: ObservableObject {
     @MainActor deinit {
         // Clean up timers and tasks on teardown
         timerScheduler.cancel()
-        countdownTimer?.invalidate()
 
         // Cancel all pending tasks
         speedUpTask?.cancel()
