@@ -1,5 +1,11 @@
 # WristBop Architecture & Implementation Plan
 
+> **For AI Agents:** This is the architectural source of truth.
+> Read relevant sections as needed (referenced by `.ai/START-HERE.md` and `.ai/features.json`).
+> For session workflow, start with `.ai/START-HERE.md`.
+
+---
+
 ## 1. High-Level Concept
 
 **Working title:** `WristBop`
