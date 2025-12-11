@@ -32,9 +32,7 @@ jq --arg id "$FEATURE_ID" \
     .meta.lastUpdated = $date |
     .meta.passing = ([.features[] | select(.passes == true)] | length) |
     .meta.failing = ([.features[] | select(.passes == false)] | length)' \
-   "$FEATURES_FILE" > "$FEATURES_FILE.tmp"
-
-mv "$FEATURES_FILE.tmp" "$FEATURES_FILE"
+   "$FEATURES_FILE" > "$FEATURES_FILE.tmp" && mv "$FEATURES_FILE.tmp" "$FEATURES_FILE"
 
 echo "❌ Feature $FEATURE_ID marked as failing"
 

@@ -23,10 +23,12 @@ echo "✅ WristBopCore builds successfully"
 
 # Run core tests
 echo "Running core tests..."
-if ! swift test > /dev/null 2>&1; then
+TEST_OUTPUT=$(swift test 2>&1)
+TEST_EXIT_CODE=$?
+if [ $TEST_EXIT_CODE -ne 0 ]; then
     echo "❌ Core tests failing"
-    echo "   Running swift test to show failures:"
-    swift test
+    echo "   Test output:"
+    echo "$TEST_OUTPUT"
     exit 1
 fi
 echo "✅ Core tests passing"
@@ -51,9 +53,9 @@ echo ""
 echo "✨ Environment verified. Ready for development."
 echo ""
 echo "📊 Quick stats:"
-TEST_OUTPUT=$(swift test 2>&1 | grep -E "Test Suite.*passed" | tail -1 || echo "")
-if [ -n "$TEST_OUTPUT" ]; then
-    echo "  $TEST_OUTPUT"
+TEST_SUMMARY=$(echo "$TEST_OUTPUT" | grep -E "Test Suite.*passed" | tail -1 || echo "")
+if [ -n "$TEST_SUMMARY" ]; then
+    echo "  $TEST_SUMMARY"
 else
     echo "  Tests: (run swift test for details)"
 fi

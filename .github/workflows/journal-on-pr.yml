@@ -2,83 +2,64 @@ name: Auto-Journal PR Events
 
 on:
   pull_request:
-    types: [opened, closed]
-  issues:
-    types: [opened, closed]
+    types: [opened, ready_for_review]
 
 jobs:
   journal:
     runs-on: ubuntu-latest
+    # Add journal entry to PR branch while it's still open
+    # When PR merges, journal entry goes into main automatically
     permissions:
       contents: write
       pull-requests: read
-      issues: read
 
     steps:
-      - name: Checkout
+      - name: Checkout PR head branch
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check if journal entry already exists
+        id: check_journal
+        run: |
+          if grep -q "PR #${{ github.event.pull_request.number }}" .ai/JOURNAL.md 2>/dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Update journal
+        if: steps.check_journal.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Determine event type and status
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            ITEM_TYPE="PR"
-            ITEM_NUMBER="${{ github.event.pull_request.number }}"
-            ITEM_TITLE="${{ github.event.pull_request.title }}"
-            ITEM_USER="${{ github.event.pull_request.user.login }}"
-            ITEM_ACTION="${{ github.event.action }}"
+          # Get files changed in PR
+          FILES=$(gh pr view ${{ github.event.pull_request.number }} --json files --jq '.files[].path' 2>/dev/null | head -5 | paste -sd ", " - || echo "N/A")
 
-            if [ "${{ github.event.pull_request.merged }}" = "true" ]; then
-              STATUS="merged"
-            elif [ "$ITEM_ACTION" = "closed" ]; then
-              STATUS="closed without merge"
-            else
-              STATUS="$ITEM_ACTION"
-            fi
-
-            # Get files changed (if PR exists)
-            if [ "$ITEM_ACTION" != "opened" ]; then
-              FILES=$(gh pr view $ITEM_NUMBER --json files --jq '.files[].path' 2>/dev/null | head -5 | paste -sd "," - || echo "")
-            else
-              FILES=""
-            fi
-
-          else
-            ITEM_TYPE="Issue"
-            ITEM_NUMBER="${{ github.event.issue.number }}"
-            ITEM_TITLE="${{ github.event.issue.title }}"
-            ITEM_USER="${{ github.event.issue.user.login }}"
-            ITEM_ACTION="${{ github.event.action }}"
-            STATUS="$ITEM_ACTION"
-            FILES=""
-          fi
-
-          # Append to journal
+          # Journal entry for PR (will be included when PR merges)
           cat >> .ai/JOURNAL.md << EOF
 
           ---
-          ## $(date '+%Y-%m-%d %H:%M') [GITHUB-EVENT]
-          **Event:** $ITEM_TYPE #$ITEM_NUMBER $STATUS
-          **Title:** $ITEM_TITLE
-          **By:** $ITEM_USER
-          **Files:** $FILES
-          **Status:** $STATUS
-          **Context:** Automatically logged by GitHub Actions
+          ## $(date '+%Y-%m-%d %H:%M') [PR-READY]
+          **Event:** PR #${{ github.event.pull_request.number }}
+          **Title:** ${{ github.event.pull_request.title }}
+          **By:** ${{ github.event.pull_request.user.login }}
+          **Branch:** ${{ github.head_ref }} → ${{ github.base_ref }}
+          **Files changed:** $FILES
+          **Context:** PR opened and ready for review. Journal entry will be included when PR merges.
           ---
           EOF
 
       - name: Commit journal
+        if: steps.check_journal.outputs.exists == 'false'
         run: |
           git config user.name "WristBop Journal Bot"
           git config user.email "journal-bot@wristbop.dev"
 
           if [[ -n $(git status -s .ai/JOURNAL.md) ]]; then
             git add .ai/JOURNAL.md
-            git commit -m "docs: auto-journal ${{ github.event_name }} #${{ github.event.pull_request.number || github.event.issue.number }}"
-            git push
+            git commit -m "docs: auto-journal PR #${{ github.event.pull_request.number }}"
+            git push origin ${{ github.head_ref }}
           fi

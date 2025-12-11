@@ -5,9 +5,9 @@
     "phase": "Phase 2 - Gesture Detection & Instrumentation",
     "DO_NOT_DELETE_FEATURES": "This inventory is APPEND-ONLY. Mark features as passing/failing, add new features, but NEVER DELETE FEATURES FROM THIS FILE. Deletion corrupts project history.",
     "deletionPolicy": "PROHIBITED",
-    "totalFeatures": 37,
-    "passing": 12,
-    "failing": 25
+    "totalFeatures": 40,
+    "passing": 13,
+    "failing": 27
   },
   "features": [
     {
