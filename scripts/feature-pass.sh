@@ -34,6 +34,13 @@ jq --arg id "$FEATURE_ID" \
     .meta.failing = ([.features[] | select(.passes == false)] | length)' \
    "$FEATURES_FILE" > "$FEATURES_FILE.tmp" && mv "$FEATURES_FILE.tmp" "$FEATURES_FILE"
 
+# Verify the update worked
+NEW_STATUS=$(jq -r --arg id "$FEATURE_ID" '.features[] | select(.id == $id) | .passes' "$FEATURES_FILE")
+if [ "$NEW_STATUS" != "true" ]; then
+    echo "⚠️  Warning: Feature status may not have updated correctly"
+    exit 1
+fi
+
 echo "✅ Feature $FEATURE_ID marked as passing"
 
 # Show updated summary

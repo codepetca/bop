@@ -11,7 +11,7 @@ A fast-reaction "Bop It"-style game for Apple Watch.
 
 **First time setup:**
 1. Clone repository
-2. Install dependencies: `brew install jq`
+2. Install dependencies: `brew install jq` **(required for feature scripts)**
 3. Verify environment: `bash scripts/verify-env.sh`
 4. Read `architecture.md` for system design
 

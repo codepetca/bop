@@ -53,11 +53,14 @@ echo ""
 echo "✨ Environment verified. Ready for development."
 echo ""
 echo "📊 Quick stats:"
+TEST_COUNT=$(echo "$TEST_OUTPUT" | grep -oE '[0-9]+ tests? passed' | head -1 || echo "")
 TEST_SUMMARY=$(echo "$TEST_OUTPUT" | grep -E "Test Suite.*passed" | tail -1 || echo "")
-if [ -n "$TEST_SUMMARY" ]; then
+if [ -n "$TEST_COUNT" ]; then
+    echo "  Tests: $TEST_COUNT"
+elif [ -n "$TEST_SUMMARY" ]; then
     echo "  $TEST_SUMMARY"
 else
-    echo "  Tests: (run swift test for details)"
+    echo "  Tests: passed (run swift test for details)"
 fi
 echo "  Current branch: $(git branch --show-current)"
 echo ""

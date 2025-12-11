@@ -2,29 +2,37 @@ name: Auto-Journal PR Events
 
 on:
   pull_request:
-    types: [opened, ready_for_review]
+    types: [opened, ready_for_review, closed]
 
 jobs:
   journal:
     runs-on: ubuntu-latest
-    # Add journal entry to PR branch while it's still open
-    # When PR merges, journal entry goes into main automatically
+    # For open PRs: Add journal entry to PR branch (merges to main when PR is merged)
+    # For closed PRs: Add journal entry directly to base branch with merge status
     permissions:
       contents: write
       pull-requests: read
 
     steps:
-      - name: Checkout PR head branch
+      - name: Checkout branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
+          # For open PRs, write to PR branch. For closed PRs, write to base branch.
+          ref: ${{ github.event.action == 'closed' && github.base_ref || github.head_ref }}
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check if journal entry already exists
         id: check_journal
         run: |
-          if grep -q "PR #${{ github.event.pull_request.number }}" .ai/JOURNAL.md 2>/dev/null; then
+          # Check for duplicate entry of this specific event type
+          if [[ "${{ github.event.action }}" == "closed" ]]; then
+            SEARCH_PATTERN="\[PR-MERGED\].*PR #${{ github.event.pull_request.number }}|\[PR-CLOSED\].*PR #${{ github.event.pull_request.number }}"
+          else
+            SEARCH_PATTERN="\[PR-READY\].*PR #${{ github.event.pull_request.number }}"
+          fi
+
+          if grep -qE "$SEARCH_PATTERN" .ai/JOURNAL.md 2>/dev/null; then
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
@@ -38,19 +46,33 @@ jobs:
           # Get files changed in PR
           FILES=$(gh pr view ${{ github.event.pull_request.number }} --json files --jq '.files[].path' 2>/dev/null | head -5 | paste -sd ", " - || echo "N/A")
 
-          # Journal entry for PR (will be included when PR merges)
+          # Determine event type and context
+          if [[ "${{ github.event.action }}" == "closed" ]]; then
+            if [[ "${{ github.event.pull_request.merged }}" == "true" ]]; then
+              EVENT_TYPE="PR-MERGED"
+              CONTEXT="PR merged into ${{ github.base_ref }}"
+            else
+              EVENT_TYPE="PR-CLOSED"
+              CONTEXT="PR closed without merge"
+            fi
+          else
+            EVENT_TYPE="PR-READY"
+            CONTEXT="PR opened and ready for review"
+          fi
+
+          # Journal entry for PR
           cat >> .ai/JOURNAL.md << EOF
 
-          ---
-          ## $(date '+%Y-%m-%d %H:%M') [PR-READY]
-          **Event:** PR #${{ github.event.pull_request.number }}
-          **Title:** ${{ github.event.pull_request.title }}
-          **By:** ${{ github.event.pull_request.user.login }}
-          **Branch:** ${{ github.head_ref }} → ${{ github.base_ref }}
-          **Files changed:** $FILES
-          **Context:** PR opened and ready for review. Journal entry will be included when PR merges.
-          ---
-          EOF
+---
+## $(date '+%Y-%m-%d %H:%M') [$EVENT_TYPE]
+**Event:** PR #${{ github.event.pull_request.number }}
+**Title:** ${{ github.event.pull_request.title }}
+**By:** ${{ github.event.pull_request.user.login }}
+**Branch:** ${{ github.head_ref }} → ${{ github.base_ref }}
+**Files changed:** $FILES
+**Context:** $CONTEXT
+---
+EOF
 
       - name: Commit journal
         if: steps.check_journal.outputs.exists == 'false'
@@ -60,6 +82,12 @@ jobs:
 
           if [[ -n $(git status -s .ai/JOURNAL.md) ]]; then
             git add .ai/JOURNAL.md
-            git commit -m "docs: auto-journal PR #${{ github.event.pull_request.number }}"
-            git push origin ${{ github.head_ref }}
+            git commit -m "docs: auto-journal PR #${{ github.event.pull_request.number }} (${{ github.event.action }})"
+
+            # Push to PR branch for open PRs, base branch for closed PRs
+            if [[ "${{ github.event.action }}" == "closed" ]]; then
+              git push origin ${{ github.base_ref }}
+            else
+              git push origin ${{ github.head_ref }}
+            fi
           fi
