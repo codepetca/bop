@@ -31,3 +31,8 @@ Carthage/Build/
 # Swift
 *.swiftmodule
 *.swiftdoc
+
+# Node.js (not used in this project)
+node_modules/
+package-lock.json
+package.json

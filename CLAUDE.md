@@ -1,5 +1,32 @@
 # CLAUDE.md
 
+## ⚠️ CRITICAL: AI Agent Starting Point
+
+**Before doing ANYTHING, read:** `.ai/START-HERE.md`
+
+This file provides the mandatory starting ritual for every AI session. Follow it exactly.
+
+---
+
+## ⚠️ CRITICAL ARCHITECTURAL BOUNDARIES - DO NOT VIOLATE
+
+**NEVER import platform frameworks into WristBopCore:**
+- ❌ FORBIDDEN: `import SwiftUI`, `import CoreMotion`, `import WatchKit`, `import UIKit`
+- ✅ ONLY ALLOWED: `import Foundation`
+- **VIOLATION OF THIS RULE BREAKS THE ENTIRE ARCHITECTURE**
+
+**NEVER put business logic in SwiftUI Views:**
+- ❌ FORBIDDEN: Timers, game state mutations, CoreMotion code in View structs
+- ✅ REQUIRED: All logic in GameViewModel/GameEngine
+- **Views must be thin presentation layer only**
+
+**NEVER mark features complete without verification:**
+- ❌ FORBIDDEN: Updating `.ai/features.json` to `"passes": true` without running verification
+- ✅ REQUIRED: Execute verification command from `feature.verification` field
+- **False positives corrupt the feature inventory**
+
+---
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview

@@ -1,5 +1,9 @@
 # WristBop Roadmap (Source of Truth)
 
+> **Note:** This file defines phases and strategic milestones for humans.
+> **For AI agents:** Detailed feature tracking is in `.ai/features.json`
+> (This file and features.json should stay roughly aligned, but features.json is the status authority)
+
 Status legend: **Next** = current focus, **Planned** = queued, **Future** = post-MVP.
 
 ## MVP Goal

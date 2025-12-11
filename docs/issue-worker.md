@@ -116,7 +116,46 @@ If incomplete:
 
 ---
 
-## 9. Output Back to User
+## 9. End-of-Session Journal (MANDATORY)
+
+Before ending ANY session, append to `.ai/JOURNAL.md`:
+
+**Template:**
+```markdown
+---
+## YYYY-MM-DD HH:MM [AI - {Model Name}]
+**Session ID:** {unique-id}
+**Goal:** {what you were asked to do}
+**Completed:** {what actually got done}
+**Features:** {IDs from features.json that changed status}
+**Status:** {in-progress/completed/blocked}
+**Artifacts:**
+- PRs: {#numbers and status}
+- Issues: {#numbers and status}
+- Commits: {SHAs}
+- Files: {paths modified}
+**Next:** {what should happen next}
+**Blockers:** {any issues encountered}
+---
+```
+
+**Also update `.ai/features.json`:**
+- Mark completed features as `"passes": true`
+- Update `meta.lastUpdated`
+- Update `meta.passing` and `meta.failing` counts
+
+**Commit both files:**
+```bash
+git add .ai/JOURNAL.md .ai/features.json
+git commit -m "docs: session log - [brief summary]"
+git push
+```
+
+This is MANDATORY. The project cannot maintain continuity without it.
+
+---
+
+## 10. Output Back to User
 Report using:
 
 Branch: <branch-name>
