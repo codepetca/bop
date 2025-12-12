@@ -221,8 +221,8 @@ struct GameViewModelTests {
             sounds: sounds,
             detector: detector,
             timerScheduler: timers,
-            skipCountdown: false,
-            countdownStepDuration: 10_000 // Fast countdown for testing
+            countdownStepDuration: 10_000, // Fast countdown for testing
+            skipCountdown: false
         )
 
         viewModel.startGame()
@@ -257,8 +257,8 @@ struct GameViewModelTests {
             sounds: sounds,
             detector: detector,
             timerScheduler: timers,
-            skipCountdown: false,
-            countdownStepDuration: 50_000
+            countdownStepDuration: 50_000,
+            skipCountdown: false
         )
 
         viewModel.startGame()

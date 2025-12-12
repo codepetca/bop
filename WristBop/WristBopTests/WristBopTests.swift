@@ -5,6 +5,7 @@
 //  Created by Stewart Chan on 2025-12-05.
 //
 
+import Foundation
 import Testing
 @testable import WristBop
 import WristBopCore
