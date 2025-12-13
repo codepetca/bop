@@ -100,3 +100,14 @@
 4. Consider manual verification on Watch simulator if tests continue to fail
 **Context:** features.json was created 2025-12-11 but implementation happened before that date. The inventory is a snapshot, not live tracking. Need verification workflow before marking features as passing.
 ---
+
+## 2025-12-13 16:25 [AI - GPT-5.2]
+**Session ID:** gpt-20251213-001
+**Goal:** Remove jq dependency from feature tooling and reduce documentation drift
+**Completed:** Replaced jq-based feature scripts with a Swift-based `scripts/features.sh` wrapper; updated docs/instructions; added docs + feature inventory validation to `scripts/verify-env.sh` and CI.
+**Commits:** ef04ad6
+**Branch:** chore/no-jq-feature-tooling
+**Tests:** ✅ `bash scripts/verify-env.sh`
+**Status:** completed
+**Next:** Create PR and merge when ready
+---
