@@ -4,7 +4,7 @@ Read this before coding. Keeps the watchOS MVP consistent, small, and testable.
 
 ## Required Reading Order
 1) `architecture.md` (game plan, gestures, difficulty curve)  
-2) `TODO.md` (current task list)  
+2) `.ai/features.json` (feature inventory and status)  
 3) `docs/tests.md` (TDD priorities and flow)  
 4) `docs/issue-worker.md` when working on GitHub issues  
 5) `docs/code-reviewer.md` when performing code reviews  
@@ -20,7 +20,7 @@ Read this before coding. Keeps the watchOS MVP consistent, small, and testable.
 
 ## Modules & Responsibilities
 - **WristBopCore** (`Sources/WristBopCore/`): Shared game logic package
-  - `GestureType`, `GameState`, `GameEngine` (+ protocol) — scoring, command generation, difficulty ramp (start 1.4s, -0.1s every 3 successes, floor 0.5s), timeout-only failure, high-score updates
+  - `GestureType`, `GameState`, `GameEngine` (+ protocol) — scoring, command generation, difficulty ramp (start ~3s, -0.1s every 3 successes, floor 0.5s), timeout-only failure, high-score updates
   - Tests in `Tests/WristBopCoreTests/`
 - **WristBop Watch App** (`WristBop/WristBop Watch App/`): watchOS app
   - **GestureDetection:** `GestureDetector` (CoreMotion + crown) with delegate; sliding-window detection, one detection per window, ignore wrong gestures, `start/stop/setActiveCommand`
@@ -44,11 +44,11 @@ Read this before coding. Keeps the watchOS MVP consistent, small, and testable.
 - Keep thresholds and timing constants centralized for easy testing/mocking.
 
 ## Small-Change Workflow
-1) Check `architecture.md` and `TODO.md` for scope.  
+1) Check `architecture.md` and `.ai/features.json` for scope.  
 2) Add/adjust tests for engines before implementation.  
 3) Implement in the correct module; keep Views thin.  
 4) Run tests (add a fast tick helper; avoid real timers in tests).  
-5) Update docs if behavior changes (architecture/tests/TODO).
+5) Update docs if behavior changes (`architecture.md`, `docs/tests.md`, `.ai/features.json`).
 
 ## Feature-Specific Rules
 - **New gesture:** add enum case, thresholds/constants, detector branch, tests (fake samples), and UI string; keep detection one-per-window.  

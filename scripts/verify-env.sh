@@ -11,6 +11,19 @@ if ! swift --version | grep -q "Swift version"; then
 fi
 echo "✅ Swift compiler available"
 
+# Check required tooling for AI workflow
+if ! command -v gh > /dev/null 2>&1; then
+    echo "⚠️  gh CLI not found (GitHub context recovery will be limited)"
+else
+    echo "✅ gh available"
+fi
+
+if ! command -v rg > /dev/null 2>&1; then
+    echo "⚠️  rg not found (search will be slower; consider installing ripgrep)"
+else
+    echo "✅ rg available"
+fi
+
 # Build core package
 echo "Building WristBopCore..."
 if ! swift build > /dev/null 2>&1; then
@@ -23,9 +36,7 @@ echo "✅ WristBopCore builds successfully"
 
 # Run core tests
 echo "Running core tests..."
-TEST_OUTPUT=$(swift test 2>&1)
-TEST_EXIT_CODE=$?
-if [ $TEST_EXIT_CODE -ne 0 ]; then
+if ! TEST_OUTPUT=$(swift test 2>&1); then
     echo "❌ Core tests failing"
     echo "   Test output:"
     echo "$TEST_OUTPUT"
@@ -49,6 +60,27 @@ if [ ! -d ".ai" ]; then
 fi
 echo "✅ AI documentation layer present"
 
+# Check required .ai files
+REQUIRED_AI_FILES=(
+    ".ai/START-HERE.md"
+    ".ai/JOURNAL.md"
+    ".ai/features.json"
+)
+for file in "${REQUIRED_AI_FILES[@]}"; do
+    if [ ! -f "$file" ]; then
+        echo "❌ Missing required AI file: $file"
+        exit 1
+    fi
+done
+echo "✅ Required AI files present"
+
+# Light drift guardrails
+echo "Checking docs consistency..."
+bash scripts/check-docs.sh
+
+echo "Validating feature inventory..."
+bash scripts/features.sh validate
+
 echo ""
 echo "✨ Environment verified. Ready for development."
 echo ""
@@ -65,5 +97,5 @@ fi
 echo "  Current branch: $(git branch --show-current)"
 echo ""
 echo "Next steps:"
-echo "  - Run: bash scripts/features-view.sh summary"
+echo "  - Run: bash scripts/features.sh summary"
 echo "  - Read: .ai/START-HERE.md"

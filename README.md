@@ -11,13 +11,12 @@ A fast-reaction "Bop It"-style game for Apple Watch.
 
 **First time setup:**
 1. Clone repository
-2. Install dependencies: `brew install jq` **(required for feature scripts)**
-3. Verify environment: `bash scripts/verify-env.sh`
-4. Read `architecture.md` for system design
+2. Verify environment: `bash scripts/verify-env.sh`
+3. Read `architecture.md` for system design
 
 **Working with the project:**
-- **View current tasks:** `bash scripts/features-view.sh summary`
-- **See what's next:** `bash scripts/features-view.sh next`
+- **View current tasks:** `bash scripts/features.sh summary`
+- **See what's next:** `bash scripts/features.sh next`
 - **Run tests:** `swift test`
 - **Build watchOS app:** Open `WristBop/WristBop.xcodeproj` in Xcode
 
@@ -57,9 +56,9 @@ xcodebuild -scheme "WristBop" \
   -destination 'platform=iOS Simulator,name=iPhone 15' test
 
 # Feature management
-bash scripts/features-view.sh summary    # View feature status
-bash scripts/feature-pass.sh <id>        # Mark feature passing
-bash scripts/feature-fail.sh <id>        # Mark feature failing
+bash scripts/features.sh summary         # View feature status
+bash scripts/features.sh pass <id>       # Mark feature passing
+bash scripts/features.sh fail <id>       # Mark feature failing
 ```
 
 ## Contributing

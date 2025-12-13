@@ -7,11 +7,11 @@
 Status legend: **Next** = current focus, **Planned** = queued, **Future** = post-MVP.
 
 ## MVP Goal
-Ship a watchOS 10 WristBop with four gestures (shake, flick up, twist, spin crown), endless loop, timeout-only failure, start at 1.4s per command with -0.1s every 3 successes to a 0.5s floor, haptic+sound cues, high score persistence, debug overlay behind a compile-time flag, and tests for core logic.
+Ship a watchOS 10 WristBop with four gestures (shake, flick up, twist, spin crown), endless loop, timeout-only failure, start at ~3s per command with -0.1s every 3 successes to a 0.5s floor, haptic+sound cues, high score persistence, debug overlay behind a compile-time flag, and tests for core logic.
 
 ## Phase 0 — Setup & Guardrails (Next)
 - Create watchOS 10 SwiftUI app target, shared constants, and test target.
-- Land AI instructions/tests docs (done) and align `architecture.md`/`TODO.md`.
+- Land AI instructions/tests docs (done) and keep docs aligned with `.ai/features.json`.
 - Add swift test runner workflow (local) and deterministic clock helpers.
 
 ## Phase 1 — GameCore via TDD (Next)
