@@ -53,7 +53,7 @@ gh issue list --state closed --limit 5
 
 ```bash
 # Quick feature summary
-bash scripts/features-view.sh summary
+bash scripts/features.sh summary
 ```
 
 - [ ] Note current phase from features.json `meta.phase`
@@ -96,7 +96,7 @@ bash scripts/features-view.sh summary
 
 ```bash
 # See next recommended features
-bash scripts/features-view.sh next
+bash scripts/features.sh next
 ```
 
 ---
@@ -122,10 +122,10 @@ bash scripts/features-view.sh next
 **Use scripts, don't hand-edit JSON:**
 ```bash
 # Mark feature passing (after verification!)
-bash scripts/feature-pass.sh <feature-id>
+bash scripts/features.sh pass <feature-id>
 
 # Mark feature failing (if regression)
-bash scripts/feature-fail.sh <feature-id>
+bash scripts/features.sh fail <feature-id>
 ```
 
 ---
@@ -221,7 +221,7 @@ import Foundation
 - Execute verification command from `feature.verification` field
 - Confirm tests pass before marking automated features complete
 - Perform manual verification for manual tests
-- Use `bash scripts/feature-pass.sh <id>` after verification
+- Use `bash scripts/features.sh pass <id>` after verification
 
 **False positives corrupt the feature inventory.**
 
@@ -234,15 +234,15 @@ import Foundation
 bash scripts/verify-env.sh
 
 # View features (human-readable)
-bash scripts/features-view.sh summary
-bash scripts/features-view.sh phase "Phase 2"
-bash scripts/features-view.sh next
+bash scripts/features.sh summary
+bash scripts/features.sh phase "Phase 2"
+bash scripts/features.sh next
 
 # Mark feature passing (after verification!)
-bash scripts/feature-pass.sh watch-002
+bash scripts/features.sh pass watch-002
 
 # Mark feature failing
-bash scripts/feature-fail.sh watch-002
+bash scripts/features.sh fail watch-002
 
 # View journal summary
 tail -100 .ai/JOURNAL.md
@@ -273,8 +273,8 @@ A: Work on unblocked features first, or ask user if you can unblock.
 **Q: Architecture.md conflicts with existing code?**
 A: Architecture.md is source of truth. Code may be outdated. Ask user before changing.
 
-**Q: Can't find jq command?**
-A: Install with: `brew install jq` (macOS). Required for feature scripts.
+**Q: Feature commands fail?**
+A: Run `bash scripts/verify-env.sh` and ensure Swift is available.
 
 **Q: Scripts don't have execute permission?**
 A: Run: `chmod +x scripts/*.sh`

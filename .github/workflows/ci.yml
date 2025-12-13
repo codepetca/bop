@@ -16,6 +16,12 @@ jobs:
       - name: Show Swift version
         run: swift --version
 
+      - name: Check docs consistency
+        run: bash scripts/check-docs.sh
+
+      - name: Validate feature inventory
+        run: bash scripts/features.sh validate
+
       - name: Run swift tests (skip if no package yet)
         if: hashFiles('Package.swift') != ''
         run: |

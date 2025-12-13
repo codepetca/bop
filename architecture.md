@@ -55,7 +55,7 @@ enum GestureType: String, CaseIterable {
 
 ### Core Loop
 1. Display command  
-2. Start timer (initial 1.4 seconds)  
+2. Start timer (initial ~3 seconds; see `GameConstants.initialTimePerCommand`)  
 3. Player performs gesture  
 4. Match → increase score & speed → next command  
 5. Failure → game over screen  
@@ -64,7 +64,7 @@ Notes:
 - Only timeouts cause failure; mismatched gestures are ignored within the window.
 
 ### Difficulty Curve
-- Start at **1.4 seconds** per command  
+- Start at **~3 seconds** per command (tuning: `GameConstants.initialTimePerCommand`)  
 - After every **3 successes**, reduce time per command by **0.1 seconds**  
 - Minimum time **0.5 seconds**  
 - Provide a noticeable haptic + sound cue whenever speed increases  

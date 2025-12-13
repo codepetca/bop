@@ -4,7 +4,7 @@
 - Swift package root with shared core at `Sources/WristBopCore/` and tests in `Tests/WristBopCoreTests/` using the `Testing` framework.
 - watchOS app lives in `WristBop/WristBop Watch App/`; iOS companion app scaffold in `WristBop/WristBop/`.
 - Xcode project and schemes are under `WristBop/WristBop.xcodeproj` (`WristBop`, `WristBop Watch App`, `WristBopCore`).
-- High-level design notes: `architecture.md`. Feature inventory and progress: `.ai/features.json` (view with `bash scripts/features-view.sh summary`).
+- High-level design notes: `architecture.md`. Feature inventory and progress: `.ai/features.json` (view with `bash scripts/features.sh summary`).
 
 ## Build, Test, and Development Commands
 - Core package build: `swift build` (checks `WristBopCore` compiles).

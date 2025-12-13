@@ -51,7 +51,7 @@ swift build
 ### CI/CD
 - CI runs on GitHub Actions (`.github/workflows/ci.yml`)
 - Automatically runs `swift test --parallel` on push/PR to any branch
-- Uses macOS 14 runner
+- Uses macOS 15 runner
 
 ### Linking Package to Xcode
 
@@ -74,8 +74,9 @@ let engine = GameEngine(
 ## Additional Documentation
 
 Beyond this file, consult these docs for detailed guidance:
+- `.ai/START-HERE.md`: Mandatory session ritual and workflow
+- `.ai/features.json`: Feature inventory + status (source of truth; use `bash scripts/features.sh summary`)
 - `architecture.md`: Detailed component design, gesture definitions, game loop mechanics
-- `TODO.md`: Current task list and implementation status
 - `docs/ai-instructions.md`: TDD workflow, module responsibilities, feature-specific rules
 - `docs/roadmap.md`: Development phases and MVP goals
 - `docs/tests.md`: Testing priorities and patterns
@@ -109,7 +110,7 @@ The project follows standard Swift Package conventions with clean separation bet
 - **Protocol-based dependency injection**: `GameEngine` accepts `CommandRandomizer` and `HighScoreStore` protocols, enabling testability
 - **Value semantics**: `GameState` is a struct, mutated only by `GameEngine`
 - **Failure model**: Only timeouts cause game over; wrong gestures within the time window are ignored
-- **Difficulty curve**: Every 3 successes decrease time by 0.1s (floor: 0.5s, start: 1.4s)
+- **Difficulty curve**: Every 3 successes decrease time by 0.1s (floor: 0.5s, start: ~3s)
 
 ### Game State Management
 
@@ -129,27 +130,21 @@ Tests use protocol-based test doubles:
 
 All game logic tests are in `Tests/WristBopCoreTests/GameEngineTests.swift`.
 
-## Implementation Status (per TODO.md)
+## Implementation Status
 
-**Completed:**
-- ✅ SwiftPM package scaffold
-- ✅ Core game logic (`GameEngine`, `GameState`, `GestureType`)
-- ✅ Difficulty ramping with speed-up cue flag
-- ✅ High score persistence
-- ✅ CI workflow
+Source of truth for what’s done (and what’s next) is `.ai/features.json`.
 
-**Remaining:**
-- Gesture detection (`GestureDetector` wrapping CoreMotion + Digital Crown)
-- System integration (`HapticsManager`, `SoundManager`)
-- UI layer (`GameViewModel`, SwiftUI views for watchOS)
-- Optional debug overlay for motion data (compile-time flag)
-- watchOS app target
+Quick commands:
+```bash
+bash scripts/features.sh summary
+bash scripts/features.sh next
+```
 
 ## Constants and Tuning
 
 All gameplay tuning is in `GameConstants`:
 ```swift
-initialTimePerCommand = 1.4        // Starting window
+initialTimePerCommand = 3.0        // Starting window
 minimumTimePerCommand = 0.5        // Speed floor
 timeDecrementPerRamp = 0.1         // Time decrease per ramp
 successesPerDifficultyRamp = 3     // Successes before speed increase
